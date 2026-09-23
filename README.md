@@ -1,2 +1,4 @@
 # Team_Tracker
-Follow plan of Val's team
+How to use Team Tracker by Github
+Step 1: Click the link below
+
