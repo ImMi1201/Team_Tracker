@@ -6,6 +6,6 @@
  * TUYỆT ĐỐI KHÔNG dán khoá "secret" (sb_secret_...) hay "service_role" vào đây.
  */
 window.TEAM_TRACKER_CONFIG = {
-  supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
+  supabaseUrl: 'https://ezducjkxcwxyengjrvif.supabase.co',
   supabaseKey: 'sb_publishable_XhntomCkbHZMYTbEKh3nDg_0jpeOnRv'
 };
