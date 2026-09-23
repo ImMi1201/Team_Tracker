@@ -849,7 +849,7 @@
     <button class="modal-close-btn" onclick="closeTaskDetail()">✕</button>
     <p class="modal-eyebrow" id="taskDetailTopic"></p>
     <h2 id="taskDetailTitle"></h2>
-    <div class="modal-meta-row" id="taskDetailMeta"></div>
+    <div class="data-actions" id="taskDetailActions" style="margin:-6px 0 14px"></div>
 
     <div class="modal-section-title">Updates</div>
     <div id="taskDetailUpdates"></div>
@@ -1276,7 +1276,12 @@ async function updateStatus(id, status){
 let openTaskDetailId = null;
 function taskUpdatedToday(t){ return !!(t.updates && t.updates.some(u => u.date === todayPlus(0))); }
 function openTaskDetail(id){ openTaskDetailId = id; renderTaskDetail(); document.getElementById('taskDetailOverlay').classList.add('open'); }
-function closeTaskDetail(){ document.getElementById('taskDetailOverlay').classList.remove('open'); openTaskDetailId = null; }
+function editTaskFromDetail(id){
+  closeTaskDetail();
+  document.querySelector('.tab-btn[data-view="tasks"]').click();
+  openEditTaskPanel(id);
+  document.getElementById('taskPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function renderTaskDetail(){
   const t = tasks.find(t=>t.id===openTaskDetailId);
   if(!t){ closeTaskDetail(); return; }
@@ -1292,7 +1297,8 @@ function renderTaskDetail(){
   document.getElementById('taskDetailUpdates').innerHTML = updates.length
     ? updates.map(u => `<div class="update-item"><div class="update-head"><span class="update-date">${fmtDate(u.date)}${u.date === todayPlus(0) ? ' · Today' : ''}</span>${u.by ? `<span class="locked-badge">${esc(u.by)}</span>` : ''}</div><div class="update-text">${esc(u.text)}</div></div>`).join('')
     : '<div class="empty-state">No updates logged yet.</div>';
-  document.getElementById('taskDetailAddBox').style.display = taskCanEdit(t) ? '' : 'none';
+  document.getElementById('taskDetailActions').innerHTML = taskCanEdit(t)
+    ? `<button class="btn btn-ghost" onclick="editTaskFromDetail(${t.id})">✎ Edit task</button>` : '';
 }
 async function addTaskUpdate(){
   const t = tasks.find(t=>t.id===openTaskDetailId);
