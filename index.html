@@ -849,6 +849,7 @@
     <button class="modal-close-btn" onclick="closeTaskDetail()">✕</button>
     <p class="modal-eyebrow" id="taskDetailTopic"></p>
     <h2 id="taskDetailTitle"></h2>
+    <div class="modal-meta-row" id="taskDetailMeta"></div>
     <div class="data-actions" id="taskDetailActions" style="margin:-6px 0 14px"></div>
 
     <div class="modal-section-title">Updates</div>
@@ -1276,6 +1277,8 @@ async function updateStatus(id, status){
 let openTaskDetailId = null;
 function taskUpdatedToday(t){ return !!(t.updates && t.updates.some(u => u.date === todayPlus(0))); }
 function openTaskDetail(id){ openTaskDetailId = id; renderTaskDetail(); document.getElementById('taskDetailOverlay').classList.add('open'); }
+function closeTaskDetail(){ document.getElementById('taskDetailOverlay').classList.remove('open'); openTaskDetailId = null; }
+// Nút Edit trong cửa sổ chi tiết: mở form sửa task (chỉ hiện với người được phép sửa)
 function editTaskFromDetail(id){
   closeTaskDetail();
   document.querySelector('.tab-btn[data-view="tasks"]').click();
@@ -1297,6 +1300,7 @@ function renderTaskDetail(){
   document.getElementById('taskDetailUpdates').innerHTML = updates.length
     ? updates.map(u => `<div class="update-item"><div class="update-head"><span class="update-date">${fmtDate(u.date)}${u.date === todayPlus(0) ? ' · Today' : ''}</span>${u.by ? `<span class="locked-badge">${esc(u.by)}</span>` : ''}</div><div class="update-text">${esc(u.text)}</div></div>`).join('')
     : '<div class="empty-state">No updates logged yet.</div>';
+  document.getElementById('taskDetailAddBox').style.display = taskCanEdit(t) ? '' : 'none';
   document.getElementById('taskDetailActions').innerHTML = taskCanEdit(t)
     ? `<button class="btn btn-ghost" onclick="editTaskFromDetail(${t.id})">✎ Edit task</button>` : '';
 }
