@@ -705,7 +705,10 @@
 
   <!-- DAILY LOG -->
   <div class="view" id="view-log">
-    <div class="toolbar"><h2>Daily Work Log</h2></div>
+    <div class="toolbar">
+      <h2>Daily Work Log</h2>
+      <button class="btn btn-brick" onclick="exportUpdateLog()" title="Every task update and daily log entry for the member, year and month selected below">⬇ Download update log (Excel)</button>
+    </div>
 
     <div class="log-entry-box" id="logEntryBox">
       <h3>What did you work on today?</h3>
@@ -1296,9 +1299,9 @@ function renderTaskDetail(){
     <span>${fmtDate(t.start)} → ${fmtDate(t.end)} · ${daysBetween(t.start, t.end)} days</span>
     <span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span>
     ${t.doneAt ? `<span>Done ${fmtDate(t.doneAt)}/${String(t.doneAt).slice(0,4)}</span>` : ''}`;
-  const updates = (t.updates || []).slice().sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  const updates = (t.updates || []).map((u, i) => Object.assign({ i }, u)).sort((a,b) => String(b.date).localeCompare(String(a.date)) || (b.i - a.i));
   document.getElementById('taskDetailUpdates').innerHTML = updates.length
-    ? updates.map(u => `<div class="update-item"><div class="update-head"><span class="update-date">${fmtDate(u.date)}${u.date === todayPlus(0) ? ' · Today' : ''}</span>${u.by ? `<span class="locked-badge">${esc(u.by)}</span>` : ''}</div><div class="update-text">${esc(u.text)}</div></div>`).join('')
+    ? updates.map(u => `<div class="update-item"><div class="update-head"><span class="update-date">${fmtDate(u.date)}${updTime(u.at, u.date) ? ' ' + updTime(u.at, u.date) : ''}${u.date === todayPlus(0) ? ' · Today' : ''}</span>${u.by ? `<span class="locked-badge">${esc(u.by)}</span>` : ''}</div><div class="update-text">${esc(u.text)}</div></div>`).join('')
     : '<div class="empty-state">No updates logged yet.</div>';
   document.getElementById('taskDetailAddBox').style.display = taskCanEdit(t) ? '' : 'none';
   document.getElementById('taskDetailActions').innerHTML = taskCanEdit(t)
@@ -1354,7 +1357,7 @@ function renderLogList(){
     const t = l.taskId ? tasks.find(t=>t.id===l.taskId) : null;
     const tp = t ? topics.find(tp=>tp.id===t.topicId) : null;
     const tag = t ? `<div class="log-task-tag" onclick="openTaskDetail(${t.id})">${esc(tp ? tp.name + ' › ' : '')}${esc(t.title)}</div>` : '';
-    return `${header}<div class="log-item"><div class="log-head"><span class="log-who">${esc(memberName(l.memberId))}</span><span class="log-date">${fmtDate(l.date)}</span></div>${tag}<div class="log-text">${esc(l.text)}</div></div>`;
+    return `${header}<div class="log-item"><div class="log-head"><span class="log-who">${esc(memberName(l.memberId))}</span><span class="log-date">${fmtDate(l.date)}${updTime(l.at, l.date) ? ' ' + updTime(l.at, l.date) : ''}</span></div>${tag}<div class="log-text">${esc(l.text)}</div></div>`;
   }).join('');
 }
 
@@ -1427,6 +1430,50 @@ function exportExcel(){
 }
 function exportOpenTasks(){ saveBlob(`Open-tasks_${stamp()}.xlsx`, TTXlsx.buildOpenTasks(fullState())); }
 function exportDoneYear(year){ saveBlob(`Done-tasks-${year}.xlsx`, TTXlsx.buildDoneByYear(fullState(), year)); }
+
+// Giờ của một update (chỉ hiện khi đúng ngày; dữ liệu nhập từ bản cũ không có giờ)
+function updTime(at, date){
+  if(!at) return '';
+  const d = new Date(at);
+  if(isNaN(d) || isoLocal(d) !== date) return '';
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// Nhật ký update theo bộ lọc của tab Daily Log (người, năm, tháng)
+function updateLogRows(){
+  const year = document.getElementById('logFilterYear').value, month = document.getElementById('logFilterMonth').value;
+  const inPeriod = (d) => (year === 'all' || String(d).slice(0,4) === year) && (month === 'all' || String(d).slice(5,7) === month);
+  let whoId = currentRole === 'admin' ? document.getElementById('logFilterMember').value : String(currentUserId);
+  whoId = whoId === 'all' ? null : Number(whoId);
+  const whoName = whoId == null ? null : memberName(whoId);
+  const rows = [];
+  let seq = 0;
+  tasks.forEach(t => {
+    const tp = topics.find(x => x.id === t.topicId);
+    (t.updates || []).forEach(u => {
+      seq++;
+      if(!inPeriod(u.date) || (whoName && u.by !== whoName)) return;
+      const fromLog = dailyLogs.some(l => l.taskId === t.id && l.date === u.date && l.text === u.text);
+      rows.push({ seq, date: u.date, time: updTime(u.at, u.date), ts: updTime(u.at, u.date) ? u.at : '', task: t.title, topic: tp ? tp.name : '—', pic: memberName(t.assigneeId),
+        status: statusMeta[t.status].label, statusKey: t.status, text: u.text, by: u.by || '',
+        type: /^Status changed:/.test(u.text) ? 'Status change' : /^Deadline changed:/.test(u.text) ? 'Deadline change' : fromLog ? 'Daily log' : 'Update' });
+    });
+  });
+  // Nhật ký chung (không gắn task). Nhật ký gắn task đã nằm trong phần update của task đó.
+  dailyLogs.filter(l => !l.taskId).forEach(l => {
+    seq++;
+    if(!inPeriod(l.date) || (whoId != null && l.memberId !== whoId)) return;
+    rows.push({ seq, date: l.date, time: updTime(l.at, l.date), ts: updTime(l.at, l.date) ? l.at : '', task: '(General note)', topic: '', pic: memberName(l.memberId), status: '', text: l.text, by: memberName(l.memberId), type: 'Daily log (general)' });
+  });
+  const monthName = month === 'all' ? '' : new Date(2000, Number(month) - 1, 1).toLocaleDateString('en-GB', { month: 'long' }) + ' ';
+  const period = year === 'all' && month === 'all' ? 'All time' : `${monthName}${year === 'all' ? '(every year)' : year}`;
+  return { rows, subtitle: `${whoName || 'Everyone'} · ${period}`, file: `Update-log_${(whoName || 'everyone').replace(/[^A-Za-z0-9]+/g, '-')}_${year === 'all' ? 'all' : year}${month === 'all' ? '' : '-' + month}.xlsx` };
+}
+function exportUpdateLog(){
+  const r = updateLogRows();
+  if(!r.rows.length){ alert('No updates for this selection. Change the member, year or month filter and try again.'); return; }
+  saveBlob(r.file, TTXlsx.buildUpdateLog({ title: 'Update log', subtitle: r.subtitle, rows: r.rows }));
+}
 function downloadCsv(rows, name){
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
   saveBlob(name, new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }));
