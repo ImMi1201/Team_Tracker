@@ -1,0 +1,30 @@
+# Giữ project Supabase luôn "có hoạt động" để không bị tạm dừng sau 7 ngày (gói Free).
+# Mỗi ngày lúc 8:00 sáng giờ Việt Nam, GitHub gửi một yêu cầu đọc nhỏ tới Supabase.
+# Địa chỉ và khoá được đọc từ config.js trong repo, nên không cần khai báo thêm.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '0 1 * * *'   # 01:00 UTC = 08:00 giờ Việt Nam, mỗi ngày
+  workflow_dispatch:       # cho phép bấm chạy thử trong tab Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lấy mã trong repo
+        uses: actions/checkout@v4
+
+      - name: Gọi Supabase
+        run: |
+          URL=$(sed -n "s/.*supabaseUrl: *'\([^']*\)'.*/\1/p" config.js | head -1)
+          KEY=$(sed -n "s/.*supabase\(Anon\)\{0,1\}Key: *'\([^']*\)'.*/\2/p" config.js | head -1)
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Không đọc được supabaseUrl / supabaseKey trong config.js"; exit 1
+          fi
+          case "$KEY" in sb_secret_*) echo "config.js đang chứa khoá SECRET, hãy thay bằng khoá publishable"; exit 1;; esac
+          echo "Gọi $URL ..."
+          RESULT=$(curl --fail --silent --show-error --max-time 30 --retry 3 --retry-delay 20 \
+            "$URL/rest/v1/tt_meta?select=version" -H "apikey: $KEY")
+          echo "Supabase trả lời: $RESULT"
