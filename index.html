@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Team Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Supabase (đăng nhập + dữ liệu). Phiên bản cố định để trang không tự thay đổi. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lib/xlsx.js"></script>
@@ -233,6 +234,12 @@
   .member-current .task-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
   .member-current .task-meta { font-size: 11px; color: var(--ink-soft); font-family: var(--font); }
   .no-task { font-size: 12px; color: var(--ink-soft); font-style: italic; padding: 10px 12px; }
+  .member-load {
+    display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-soft);
+    font-family: var(--font);
+  }
+  .load-bar { flex: 1; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .load-fill { height: 100%; background: var(--primary); }
 
   /* Badges */
   .badge {
@@ -243,6 +250,11 @@
   .badge.progress { background: var(--progress-bg); color: var(--progress); }
   .badge.done { background: var(--done-bg); color: var(--done); }
   .badge.blocked { background: var(--blocked-bg); color: var(--blocked); }
+  .badge.perm-admin { background: var(--primary-soft); color: var(--primary); }
+  .badge.perm-staff { background: var(--progress-bg); color: var(--progress); }
+
+  /* Khung dùng chung (Lịch sử dụng lớp này, không xoá) */
+  .timeline-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; overflow-x: auto; }
 
   /* Task table */
   .task-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
@@ -363,11 +375,6 @@
   .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
   .cal-cell.today { border-color: var(--brick); border-width: 2px; }
   .cal-cell.selected { background: var(--primary-soft); border-color: var(--primary); }
-  
-  /* Chủ nhật mờ đi */
-  .cal-cell.is-sunday { background: #F3F5F4; border-color: transparent; pointer-events: none; cursor: default; }
-  .cal-cell.is-sunday .cal-daynum { color: var(--brick); font-weight: normal; }
-  
   .cal-daynum { font-family: var(--font); font-size: 11px; color: var(--ink-soft); }
   .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
   .cal-dot {
@@ -393,14 +400,65 @@
     .cal-cell { min-height: 56px; }
   }
 
-  /* Data & Excel tab */
+  /* Data & Excel tab (added) */
   .data-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 10px; max-width: 760px; }
   .data-note b { color: var(--ink); }
   .data-addr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .data-addr code { font-family: var(--font); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
   .data-addr .btn { padding: 5px 12px; }
 
-  /* Giao diện gọn */
+  /* Added for the web version */
+  .role-bar .btn-ghost { color: #fff; border-color: rgba(255,255,255,.3); }
+  .role-actions { display: flex; gap: 8px; }
+  .list-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+  .list-controls label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: var(--font); }
+  .list-controls select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--ink); font-family: var(--font); }
+  .list-controls .count { font-size: 12px; color: var(--ink-soft); font-family: var(--font); padding-bottom: 8px; }
+  .toolbar-note { font-family: var(--font); font-size: 11px; color: var(--ink-soft); font-weight: 400; margin-left: 10px; }
+  .log-month { font-family: var(--font); font-weight: 700; font-size: 14px; margin: 14px 0 2px; color: var(--ink); }
+  .log-month span { font-family: var(--font); font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 8px; }
+  .pw-note { font-size: 13px; color: var(--ink-soft); margin: -6px 0 16px; line-height: 1.5; }
+  .modal-card .field { margin-bottom: 12px; }
+  .wrap-range { font-family: var(--font); font-weight: 700; font-size: 16px; min-width: 210px; text-align: center; }
+  .wrap-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .wrap-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .wrap-stat .num { font-family: var(--font); font-size: 22px; font-weight: 500; display: block; color: var(--primary); }
+  .wrap-stat .lbl { font-size: 10px; color: var(--ink-soft); font-family: var(--font); }
+  .wrap-member { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .wrap-member-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .wrap-member-head .counts { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .wrap-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .wrap-col h4 { font-family: var(--font); font-size: 11px; color: var(--ink-soft); margin: 0 0 8px; }
+  .wrap-item { background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12.5px; line-height: 1.45; }
+  .wrap-item .meta { font-family: var(--font); font-size: 10.5px; color: var(--ink-soft); display: block; margin-top: 2px; }
+  .wrap-item ul { margin: 4px 0 0; padding-left: 16px; color: var(--ink-soft); }
+  .wrap-quiet { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+  @media (max-width: 640px) { .role-bar { flex-wrap: wrap; gap: 8px; } }
+  .login-step[hidden] { display: none; }
+  .login-card .btn-ghost { color: var(--ink); }
+  .toast-box { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: calc(100vw - 32px); }
+  .toast { background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .toast a { color: #cde9e2; }
+  .data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .data-actions .btn { text-decoration: none; }
+  [hidden] { display: none !important; }
+  .login-switch { margin-top: 14px; font-size: 12px; color: var(--ink-soft); text-align: center; }
+  .login-switch a { color: var(--primary); cursor: pointer; font-weight: 600; }
+  .badge.appr { background: #EDE7F6; color: #5E35B1; }
+  .badge.appr.rej { background: var(--blocked-bg); color: var(--blocked); }
+  .tab-count { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 6px; border-radius: 9px; background: var(--brick); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+  .tab-btn.active .tab-count { background: #fff; color: var(--ink); }
+  .group-head { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
+  .group-head .member-name { font-size: 14px; }
+  .group-head .count-pill { font-family: var(--font); font-size: 11px; color: var(--ink-soft); }
+  .item-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  .item-row .meta { font-size: 11px; color: var(--ink-soft); font-family: var(--font); margin-top: 3px; }
+  .item-row .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .item-row .btn { padding: 6px 12px; }
+  .section-title { font-family: var(--font); font-size: 15px; margin: 22px 0 10px; }
+  .member-counts { display: flex; gap: 6px; flex-wrap: wrap; margin: -6px 0 10px; }
+
+  /* ===================== Giao diện gọn: ít màu, ít khung, một font ===================== */
   body { font-family: var(--font); font-size: 14px; line-height: 1.45; }
   .app { max-width: 1160px; padding: 18px 24px 64px; }
   .num, .duration, .tab-count, .summary b, .mdue { font-variant-numeric: tabular-nums; }
@@ -1546,8 +1604,6 @@ function openCalendarAssign(memberId, dateIso){
   document.getElementById('tStart').value = dateIso;
   document.getElementById('tEnd').value = dateIso;
 }
-
-// Hàm renderCalendar đã thay đổi để hiển thị những người Available và bỏ qua Chủ nhật
 function renderCalendar(){
   const y = calendarViewDate.getFullYear(), mo = calendarViewDate.getMonth();
   document.getElementById('calTitle').textContent = `${['January','February','March','April','May','June','July','August','September','October','November','December'][mo]} ${y}`;
@@ -1555,49 +1611,22 @@ function renderCalendar(){
   const days = new Date(y, mo+1, 0).getDate(), todayIso = todayPlus(0);
   let html = '';
   for(let i=0;i<lead;i++) html += `<div class="cal-cell empty"></div>`;
-  
   for(let d=1; d<=days; d++){
-    const dateObj = new Date(y, mo, d);
-    const dateIso = isoLocal(dateObj);
-    const isSunday = dateObj.getDay() === 0;
-
-    if (isSunday) {
-        html += `<div class="cal-cell is-sunday"><div class="cal-daynum">${d}</div><div style="font-size:9px; margin-top:8px; color:var(--brick)">Chủ nhật</div></div>`;
-    } else {
-        const detail = getBusyForDate(dateIso);
-        const free = detail.filter(x=>!x.tasks.length);
-        
-        let dots = free.slice(0,6).map(x => `<div class="cal-dot free-hint" title="${esc(x.member.name)} trống lịch">${esc(initials(x.member.name))}</div>`).join('');
-        if(free.length > 6) dots += `<span class="cal-overflow">+${free.length-6}</span>`;
-
-        html += `<div class="cal-cell${dateIso===todayIso?' today':''}${dateIso===selectedCalendarDate?' selected':''}" onclick="selectCalendarDay('${dateIso}')">
-          <div class="cal-daynum">${d}</div>
-          <div style="font-size:10px; font-weight:600; color:var(--done); margin-top:4px">${free.length} Available</div>
-          <div class="cal-dots">${dots}</div>
-        </div>`;
-    }
+    const dateIso = isoLocal(new Date(y, mo, d));
+    const busy = getBusyForDate(dateIso).filter(x=>x.tasks.length);
+    let dots = busy.slice(0,6).map(x => {
+      const worst = x.tasks.find(t=>t.status==='blocked') || x.tasks.find(t=>t.status==='progress') || x.tasks[0];
+      return `<div class="cal-dot" style="background:${statusMeta[worst.status].color}" title="${esc(x.member.name)} is busy">${esc(initials(x.member.name))}</div>`;
+    }).join('');
+    if(busy.length > 6) dots += `<span class="cal-overflow">+${busy.length-6}</span>`;
+    html += `<div class="cal-cell${dateIso===todayIso?' today':''}${dateIso===selectedCalendarDate?' selected':''}" onclick="selectCalendarDay('${dateIso}')"><div class="cal-daynum">${d}</div><div class="cal-dots">${dots}</div></div>`;
   }
   document.getElementById('calGrid').innerHTML = html;
-
-  const selDateObj = new Date(selectedCalendarDate);
-  if (selDateObj.getDay() === 0) {
-      document.getElementById('calDetail').innerHTML = `<h3>${fmtDateFull(selectedCalendarDate)}</h3><div class="empty-state">Chủ nhật (Ngày nghỉ không phân bổ task)</div>`;
-      return;
-  }
-
   const detail = getBusyForDate(selectedCalendarDate), busy = detail.filter(x=>x.tasks.length), free = detail.filter(x=>!x.tasks.length);
-  
-  const freeHtml = free.length ? free.map(x => `<div class="cal-person-row"><div class="cal-person-info">${renderAvatar(x.member, 'width:26px;height:26px;font-size:10px')}<div class="name">${esc(x.member.name)}</div></div>${currentRole === 'admin' ? `<button class="cal-assign-btn" onclick="openCalendarAssign(${x.member.id}, '${selectedCalendarDate}')">+ Giao task</button>` : ''}</div>`).join('') : '<div class="empty-state">Không có nhân sự nào trống lịch</div>';
   const busyHtml = busy.length ? busy.map(x => { const t = x.tasks[0], tp = topics.find(tp=>tp.id===t.topicId);
-    return `<div class="cal-person-row"><div class="cal-person-info">${renderAvatar(x.member, 'width:26px;height:26px;font-size:10px')}<div style="min-width:0"><div class="name">${esc(x.member.name)}</div><div class="task-note">${esc((tp ? tp.name+' › ' : '') + t.title + (x.tasks.length>1 ? ` (+${x.tasks.length-1} task khác)` : ''))}</div></div></div><span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span></div>`; }).join('') : '<div class="empty-state">Không có ai bận rộn</div>';
-
-  document.getElementById('calDetail').innerHTML = `
-    <h3>${fmtDateFull(selectedCalendarDate)}</h3>
-    <div class="cal-detail-sub">Có <b>${free.length} nhân sự</b> đang trống lịch để nhận task mới.</div>
-    <div class="cal-detail-cols">
-      <div class="cal-detail-col"><h4>Sẵn sàng nhận task (Available)</h4>${freeHtml}</div>
-      <div class="cal-detail-col"><h4>Đang làm task khác (Busy)</h4>${busyHtml}</div>
-    </div>`;
+    return `<div class="cal-person-row"><div class="cal-person-info">${renderAvatar(x.member, 'width:26px;height:26px;font-size:10px')}<div style="min-width:0"><div class="name">${esc(x.member.name)}</div><div class="task-note">${esc((tp ? tp.name+' › ' : '') + t.title + (x.tasks.length>1 ? ` (+${x.tasks.length-1} more)` : ''))}</div></div></div><span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span></div>`; }).join('') : '<div class="empty-state">No one is busy this day</div>';
+  const freeHtml = free.length ? free.map(x => `<div class="cal-person-row"><div class="cal-person-info">${renderAvatar(x.member, 'width:26px;height:26px;font-size:10px')}<div class="name">${esc(x.member.name)}</div></div>${currentRole === 'admin' ? `<button class="cal-assign-btn" onclick="openCalendarAssign(${x.member.id}, '${selectedCalendarDate}')">+ Assign</button>` : ''}</div>`).join('') : '<div class="empty-state">Everyone is busy</div>';
+  document.getElementById('calDetail').innerHTML = `<h3>${fmtDateFull(selectedCalendarDate)}</h3><div class="cal-detail-sub">${busy.length} busy · ${free.length} available</div><div class="cal-detail-cols"><div class="cal-detail-col"><h4>Busy</h4>${busyHtml}</div><div class="cal-detail-col"><h4>Available</h4>${freeHtml}</div></div>`;
 }
 
 // ================= RENDER =================
@@ -1639,6 +1668,8 @@ function renderAssigneeSelect(){
   document.getElementById('tAssignee').innerHTML = sortedMembers().map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
 }
 
+// Dashboard: thành viên A → Z; chỉ Not started rồi In progress (Pending ở tab riêng)
+// Dashboard: thành viên A → Z; mỗi thẻ chỉ hiện số lượng và vài task đầu (Not started trước, rồi In progress)
 const expandedMembers = new Set();
 function toggleMemberTasks(id){ if(expandedMembers.has(id)) expandedMembers.delete(id); else expandedMembers.add(id); renderDashboard(); }
 function renderDashboard(){
