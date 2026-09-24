@@ -253,27 +253,6 @@
   .badge.perm-admin { background: var(--primary-soft); color: var(--primary); }
   .badge.perm-staff { background: var(--progress-bg); color: var(--progress); }
 
-  /* Timeline */
-  .timeline-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; overflow-x: auto; }
-  .timeline-header { display: flex; margin-bottom: 4px; }
-  .timeline-row-label { width: 150px; flex-shrink: 0; }
-  .timeline-days { display: flex; flex: 1; min-width: 620px; }
-  .day-cell {
-    flex: 1; text-align: center; font-family: var(--font);
-    font-size: 10px; color: var(--ink-soft); padding-bottom: 8px; border-bottom: 1px solid var(--line);
-  }
-  .day-cell.weekend { color: var(--brick); }
-  .timeline-row { display: flex; align-items: center; min-height: 46px; border-bottom: 1px solid var(--line); }
-  .timeline-row:last-child { border-bottom: none; }
-  .tl-person { width: 150px; flex-shrink: 0; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .tl-track { position: relative; flex: 1; min-width: 620px; height: 28px; }
-  .tl-bar {
-    position: absolute; height: 22px; top: 3px; border-radius: 6px;
-    font-size: 10px; color: #fff; display: flex; align-items: center; padding: 0 8px;
-    font-family: var(--font); white-space: nowrap; overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0,0,0,.12);
-  }
-
   /* Task table */
   .task-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
   .task-table th {
@@ -626,7 +605,6 @@
     <details class="tab-more">
       <summary>More</summary>
       <div class="tab-menu">
-        <button class="tab-btn" data-view="timeline">Timeline</button>
         <button class="tab-btn" data-view="calendar">Calendar</button>
         <button class="tab-btn" data-view="compare">Compare</button>
       </div>
@@ -657,18 +635,6 @@
       </div>
     </div>
     <div class="member-grid" id="dashboardGrid"></div>
-  </div>
-
-  <!-- TIMELINE -->
-  <div class="view" id="view-timeline">
-    <div class="toolbar"><h2>Team Timeline (14 days)<span class="toolbar-note">Pending tasks are not shown</span></h2></div>
-    <div class="timeline-wrap">
-      <div class="timeline-header">
-        <div class="timeline-row-label"></div>
-        <div class="timeline-days" id="timelineDays"></div>
-      </div>
-      <div id="timelineRows"></div>
-    </div>
   </div>
 
   <!-- CALENDAR -->
@@ -1729,32 +1695,6 @@ function renderDashboard(){
   }).join('');
 }
 
-// Timeline: không tính Pending, task chưa duyệt, và task Done của năm trước
-function renderTimeline(){
-  const totalDays = 14, startOffset = -3;
-  const daysEl = document.getElementById('timelineDays');
-  daysEl.innerHTML = '';
-  for(let i=0;i<totalDays;i++){
-    const d = new Date(); d.setDate(d.getDate()+startOffset+i);
-    const cell = document.createElement('div');
-    cell.className = 'day-cell' + ((d.getDay()===0 || d.getDay()===6) ? ' weekend' : '');
-    cell.textContent = d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
-    daysEl.appendChild(cell);
-  }
-  const rowsEl = document.getElementById('timelineRows');
-  if(!members.length){ rowsEl.innerHTML = '<div class="empty-state">No data yet</div>'; return; }
-  const rangeStart = todayPlus(startOffset);
-  rowsEl.innerHTML = sortedMembers().map(m => {
-    const bars = tracked().filter(t => t.assigneeId === m.id && t.status !== 'blocked').map(t => {
-      let left = Math.max(daysBetween(rangeStart, t.start), 0), right = Math.min(daysBetween(rangeStart, t.end), totalDays);
-      if(right <= left) right = left + 1;
-      const tp = topics.find(tp=>tp.id===t.topicId);
-      return `<div class="tl-bar" style="left:${(left/totalDays)*100}%;width:${((right-left)/totalDays)*100}%;background:${statusMeta[t.status].color}" title="${esc(tp ? tp.name + ' — ' + t.title : t.title)}">${esc(t.title)}</div>`;
-    }).join('');
-    return `<div class="timeline-row"><div class="tl-person">${renderAvatar(m, 'width:26px;height:26px;font-size:11px')}${esc(m.name)}</div><div class="tl-track">${bars}</div></div>`;
-  }).join('');
-}
-
 // Pending: phần riêng, lọc theo tên, nhóm theo người A → Z
 function renderPending(){
   const sel = document.getElementById('pendingFilter');
@@ -1823,7 +1763,7 @@ function renderTasks(){
     const adminBtns = currentRole === 'admin' ? `<button class="topic-del-btn" onclick="event.stopPropagation(); removeTopic(${tp.id})" title="Delete topic">✕</button><button class="topic-del-btn" onclick="event.stopPropagation(); renameTopic(${tp.id})" title="Rename topic" style="margin-right:8px">✎</button>` : '';
     html += `<tr class="topic-row" onclick="toggleTopic(${tp.id})"><td colspan="7"><span class="topic-toggle">${collapsed ? '▸' : '▾'}</span>${esc(tp.name)}
       <span class="topic-meta">${doneCount}/${counted.length} subtasks done</span><span class="topic-progress-track"><span class="topic-progress-fill" style="width:${pct}%"></span></span>${adminBtns}
-      ${filtering ? `<div class="topic-meta" style="margin:4px 0 0 24px">Showing ${subs.length} of ${counted.length}</div>` : ''}</td></tr>`;
+      ${filtering ? `<div class="topic-meta" style="margin:4px 0 0 24px">Showing ${subs.length} of${counted.length}</div>` : ''}</td></tr>`;
     if(!subs.length) html += `<tr class="subtask-row${collapsed?' collapsed':''}"><td colspan="7" style="padding-left:32px;color:var(--ink-soft);font-style:italic;">No subtasks yet.</td></tr>`;
     subs.forEach(t => {
       const canEdit = taskCanEdit(t);
@@ -1897,7 +1837,7 @@ function renderLogView(){
 function renderAll(){
   if(!currentAccount) return;
   renderRoleBar(); renderStats(); renderAssigneeSelect(); renderTopicSelect(); renderTaskFilters();
-  renderDashboard(); renderTimeline(); renderCalendar(); renderTasks(); renderPending();
+  renderDashboard(); renderCalendar(); renderTasks(); renderPending();
   renderCompare(); renderLogView(); renderMembers();
   if(openTaskDetailId !== null) renderTaskDetail();
 }
