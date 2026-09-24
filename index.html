@@ -1207,7 +1207,7 @@ const taskCanDelete = taskCanEdit; // Staff xoá được task mình phụ trác
 
 function openAddTaskPanel(){
   const isAdmin = currentRole === 'admin';
-  if(!isAdmin && currentUserId == null){ alert('Your account is not linked to a team member, so it cannot add tasks.'); return; }
+  if(!isAdmin){ alert('Only Managers can add new tasks.'); return; }
   if(topics.length === 0){ alert('No topics yet. Please ask a Manager to add a Topic first.'); return; }
   editingTaskId = null;
   document.getElementById('taskPanelTitle').textContent = isAdmin ? 'New Subtask' : 'New Task for Me';
@@ -1556,8 +1556,9 @@ function renderRoleBar(){
   }
   document.querySelectorAll('[data-admin-only]').forEach(el => { el.style.display = currentRole === 'admin' ? '' : 'none'; });
   const addBtn = document.getElementById('addTaskBtn');
-  addBtn.style.display = (currentRole === 'admin' || currentUserId != null) ? '' : 'none';
-  addBtn.textContent = currentRole === 'admin' ? '+ Add Subtask' : '+ Add My Task';
+  // Chỉ Manager được thêm task mới
+  addBtn.style.display = currentRole === 'admin' ? '' : 'none';
+  addBtn.textContent = '+ Add Subtask';
   const active = document.querySelector('.tab-btn.active');
   if(active && active.hasAttribute('data-admin-only') && currentRole !== 'admin') document.querySelector('.tab-btn[data-view="dashboard"]').click();
 }
