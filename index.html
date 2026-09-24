@@ -10,17 +10,18 @@
 <script src="lib/xlsx.js"></script>
 <script src="lib/data.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
   :root {
-    --bg: #F5F4EF;
+    --font: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --bg: #F3F5F4;
     --surface: #FFFFFF;
-    --ink: #1C2B28;
-    --ink-soft: #5B6A66;
-    --line: #E1DFD6;
+    --ink: #1F2A28;
+    --ink-soft: #66716E;
+    --line: #E1E6E4;
     --primary: #2F6F62;
     --primary-soft: #E4EEEB;
-    --brick: #B65C36;
+    --brick: #66716E;
     --todo: #97A0A6;
     --todo-bg: #EEF0F1;
     --progress: #C98A26;
@@ -37,7 +38,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font);
     -webkit-font-smoothing: antialiased;
   }
   .app { max-width: 1180px; margin: 0 auto; padding: 32px 24px 80px; }
@@ -52,34 +53,33 @@
     box-shadow: 0 20px 50px rgba(0,0,0,.35);
   }
   .login-eyebrow {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--brick); margin: 0 0 6px;
+    font-family: var(--font); font-size: 11px; color: var(--brick); margin: 0 0 6px;
   }
-  .login-card h2 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 20px; font-size: 22px; }
+  .login-card h2 { font-family: var(--font); margin: 0 0 20px; font-size: 22px; }
   .login-card .field { margin-bottom: 12px; }
-  .login-card label { display:block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family:'IBM Plex Mono',monospace; text-transform: uppercase; letter-spacing:.05em; }
+  .login-card label { display:block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: var(--font); }
   .login-card input {
     width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
-    font-family: 'Inter', sans-serif; font-size: 14px; background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 14px; background: var(--bg); color: var(--ink);
   }
   .login-error { color: var(--blocked); font-size: 12px; margin: 4px 0 10px; min-height: 14px; }
   .login-hint {
     margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line);
-    font-size: 11px; color: var(--ink-soft); line-height: 1.7; font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--ink-soft); line-height: 1.7; font-family: var(--font);
   }
   .login-hint b { color: var(--ink); }
   .login-card.loading .field, .login-card.loading .login-hint { opacity: .35; pointer-events: none; }
   .login-card.loading .btn { opacity: .35; pointer-events: none; }
-  .login-loading-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 10px; display: none; font-family: 'IBM Plex Mono', monospace; }
+  .login-loading-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 10px; display: none; font-family: var(--font); }
   .login-card.loading .login-loading-note { display: block; }
-  .storage-indicator { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+  .storage-indicator { font-family: var(--font); font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
   .storage-indicator.ok { background: rgba(255,255,255,.15); color: #cde9e2; }
   .storage-indicator.warn { background: var(--brick); color: #fff; }
 
   /* Avatar customization */
   .avatar-picker-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
   .avatar-preview { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; background: var(--primary-soft); color: var(--primary); flex-shrink: 0; }
+    font-family: var(--font); font-weight: 700; font-size: 18px; background: var(--primary-soft); color: var(--primary); flex-shrink: 0; }
   .avatar-picker-fields { display: flex; gap: 10px; flex: 1; }
   .avatar-picker-fields .field { flex: 1; }
   .avatar-picker-fields input[type="text"] { text-align: center; font-size: 16px; }
@@ -94,8 +94,8 @@
   .task-title-link:hover { color: var(--primary); text-decoration: underline; }
   .updated-today-badge {
     display: inline-block; font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
-    background: var(--primary); color: #fff; margin-left: 6px; text-transform: uppercase; letter-spacing: .04em;
-    font-family: 'IBM Plex Mono', monospace; vertical-align: middle;
+    background: var(--primary); color: #fff; margin-left: 6px;
+    font-family: var(--font); vertical-align: middle;
   }
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(15,25,23,.55); z-index: 90;
@@ -111,18 +111,18 @@
     color: var(--ink-soft); cursor: pointer; line-height: 1;
   }
   .modal-close-btn:hover { color: var(--ink); }
-  .modal-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brick); margin: 0 0 6px; }
-  .modal-card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin: 0 0 14px; padding-right: 24px; }
-  .modal-meta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; font-size: 12px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
-  .modal-meta-row b { color: var(--ink); font-family: 'Inter', sans-serif; }
-  .modal-section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 18px 0 10px; }
+  .modal-eyebrow { font-family: var(--font); font-size: 11px; color: var(--brick); margin: 0 0 6px; }
+  .modal-card h2 { font-family: var(--font); font-size: 19px; margin: 0 0 14px; padding-right: 24px; }
+  .modal-meta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; font-size: 12px; color: var(--ink-soft); font-family: var(--font); }
+  .modal-meta-row b { color: var(--ink); font-family: var(--font); }
+  .modal-section-title { font-family: var(--font); font-size: 11px; color: var(--ink-soft); margin: 18px 0 10px; }
   .update-item { background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
   .update-item .update-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-  .update-item .update-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--brick); font-weight: 500; }
+  .update-item .update-date { font-family: var(--font); font-size: 11px; color: var(--brick); font-weight: 500; }
   .update-item .update-text { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
   .update-add-box textarea {
     width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-    font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); resize: vertical; margin-bottom: 8px;
+    font-family: var(--font); font-size: 13px; background: var(--bg); color: var(--ink); resize: vertical; margin-bottom: 8px;
   }
 
   /* Header */
@@ -137,15 +137,13 @@
     flex-wrap: wrap;
   }
   .brand-eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--font);
     font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
     color: var(--brick);
     margin: 0 0 6px;
   }
   h1 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--font);
     font-size: 30px;
     font-weight: 700;
     margin: 0;
@@ -154,13 +152,13 @@
   .header-stats {
     display: flex;
     gap: 22px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--font);
     flex-wrap: wrap;
     justify-content: flex-end;
   }
   .stat { text-align: right; }
   .stat .num { font-size: 22px; font-weight: 500; color: var(--primary); display:block; }
-  .stat .lbl { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat .lbl { font-size: 10px; color: var(--ink-soft); }
   .stat.st-todo .num { color: var(--todo); }
   .stat.st-progress .num { color: var(--progress); }
   .stat.st-blocked .num { color: var(--blocked); }
@@ -172,10 +170,10 @@
     background: var(--ink); color: #fff; border-radius: 8px;
     padding: 10px 16px; margin-bottom: 20px; font-size: 12px;
   }
-  .role-bar .who { display: flex; align-items: center; gap: 10px; font-family: 'IBM Plex Mono', monospace; }
+  .role-bar .who { display: flex; align-items: center; gap: 10px; font-family: var(--font); }
   .role-pill {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11px;
-    padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em;
+    font-family: var(--font); font-weight: 700; font-size: 11px;
+    padding: 3px 10px; border-radius: 20px;
   }
   .role-pill.admin { background: var(--primary); color: #fff; }
   .role-pill.staff { background: var(--progress); color: #fff; }
@@ -183,7 +181,7 @@
   /* Tabs */
   .tabs { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
   .tab-btn {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--font);
     font-weight: 600;
     font-size: 14px;
     padding: 9px 18px;
@@ -217,10 +215,10 @@
     width: 38px; height: 38px; border-radius: 50%;
     background: var(--primary-soft); color: var(--primary);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;
+    font-family: var(--font); font-weight: 700; font-size: 14px;
     flex-shrink: 0;
   }
-  .member-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
+  .member-name { font-family: var(--font); font-weight: 700; font-size: 15px; }
   .member-role { font-size: 12px; color: var(--ink-soft); }
   .member-current {
     background: var(--bg);
@@ -234,11 +232,11 @@
   .member-current.st-blocked { border-left-color: var(--blocked); background: var(--blocked-bg); }
   .member-tasks-list { display: flex; flex-direction: column; gap: 0; max-height: 260px; overflow-y: auto; margin-bottom: 10px; }
   .member-current .task-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-  .member-current .task-meta { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+  .member-current .task-meta { font-size: 11px; color: var(--ink-soft); font-family: var(--font); }
   .no-task { font-size: 12px; color: var(--ink-soft); font-style: italic; padding: 10px 12px; }
   .member-load {
     display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-soft);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--font);
   }
   .load-bar { flex: 1; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
   .load-fill { height: 100%; background: var(--primary); }
@@ -246,7 +244,7 @@
   /* Badges */
   .badge {
     display: inline-block; font-size: 10px; font-weight: 600;
-    padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 3px 9px; border-radius: 20px;
   }
   .badge.todo { background: var(--todo-bg); color: var(--todo); }
   .badge.progress { background: var(--progress-bg); color: var(--progress); }
@@ -261,7 +259,7 @@
   .timeline-row-label { width: 150px; flex-shrink: 0; }
   .timeline-days { display: flex; flex: 1; min-width: 620px; }
   .day-cell {
-    flex: 1; text-align: center; font-family: 'IBM Plex Mono', monospace;
+    flex: 1; text-align: center; font-family: var(--font);
     font-size: 10px; color: var(--ink-soft); padding-bottom: 8px; border-bottom: 1px solid var(--line);
   }
   .day-cell.weekend { color: var(--brick); }
@@ -272,22 +270,21 @@
   .tl-bar {
     position: absolute; height: 22px; top: 3px; border-radius: 6px;
     font-size: 10px; color: #fff; display: flex; align-items: center; padding: 0 8px;
-    font-family: 'IBM Plex Mono', monospace; white-space: nowrap; overflow: hidden;
+    font-family: var(--font); white-space: nowrap; overflow: hidden;
     box-shadow: 0 1px 2px rgba(0,0,0,.12);
   }
 
   /* Task table */
   .task-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
   .task-table th {
-    text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 0.06em; color: var(--ink-soft); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--bg);
+    text-align: left; font-family: var(--font); font-size: 10px; color: var(--ink-soft); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--bg);
   }
   .task-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
   .task-table tr:last-child td { border-bottom: none; }
   .task-table tr:hover td { background: #FBFAF7; }
-  .duration { font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
+  .duration { font-family: var(--font); font-weight: 500; }
   select.status-select, select.perm-select {
-    font-family: 'Inter', sans-serif; font-size: 12px; border: 1px solid var(--line); border-radius: 6px;
+    font-family: var(--font); font-size: 12px; border: 1px solid var(--line); border-radius: 6px;
     padding: 4px 6px; background: var(--surface); color: var(--ink);
   }
   .del-btn { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; }
@@ -299,16 +296,16 @@
     padding: 18px; margin-bottom: 20px; display: none;
   }
   .add-panel.open { display: block; }
-  .add-panel h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 14px; font-size: 15px; }
+  .add-panel h3 { font-family: var(--font); margin: 0 0 14px; font-size: 15px; }
   .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .field label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
+  .field label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: var(--font); }
   .field input, .field select {
     width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-    font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 13px; background: var(--bg); color: var(--ink);
   }
   .field input:disabled, .field select:disabled { opacity: .55; cursor: not-allowed; }
   .btn {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px;
+    font-family: var(--font); font-weight: 600; font-size: 13px;
     padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; transition: opacity .15s;
   }
   .btn:hover { opacity: 0.85; }
@@ -316,10 +313,10 @@
   .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
   .btn-brick { background: var(--brick); color: #fff; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
-  .toolbar h2 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0; }
+  .toolbar h2 { font-family: var(--font); font-size: 18px; margin: 0; }
   .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-soft); font-size: 13px; }
-  .locked-badge { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  .locked-badge { font-family: var(--font); font-size: 11px; color: var(--ink-soft); }
   [data-admin-only] { display: none; }
   body.role-admin [data-admin-only] { display: inline-flex; }
   body.role-admin button[data-admin-only],
@@ -327,28 +324,28 @@
 
   /* Compare view */
   .compare-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
-  .compare-panel h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 16px; font-size: 15px; }
+  .compare-panel h3 { font-family: var(--font); margin: 0 0 16px; font-size: 15px; }
   .cmp-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .cmp-name { width: 130px; flex-shrink: 0; font-size: 13px; font-weight: 600; }
   .cmp-bar-track { flex: 1; height: 18px; background: var(--bg); border-radius: 5px; overflow: hidden; }
   .cmp-bar-fill { height: 100%; background: var(--primary); border-radius: 5px 0 0 5px; transition: width .3s; }
   .cmp-bar-fill.alt { background: var(--brick); }
-  .cmp-value { width: 60px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
+  .cmp-value { width: 60px; text-align: right; font-family: var(--font); font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
 
   /* Daily log */
   .log-entry-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; }
-  .log-entry-box h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 4px; font-size: 15px; }
+  .log-entry-box h3 { font-family: var(--font); margin: 0 0 4px; font-size: 15px; }
   .log-entry-box .sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 12px; }
   .log-entry-box textarea {
     width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink);
+    padding: 10px 12px; font-family: var(--font); font-size: 13px; background: var(--bg); color: var(--ink);
     resize: vertical; margin-bottom: 10px;
   }
-  .log-saved-note { font-size: 11px; color: var(--primary); font-family: 'IBM Plex Mono', monospace; margin-left: 10px; }
+  .log-saved-note { font-size: 11px; color: var(--primary); font-family: var(--font); margin-left: 10px; }
   .log-list { display: flex; flex-direction: column; gap: 10px; }
   .log-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
   .log-item .log-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-  .log-item .log-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--brick); font-weight: 500; }
+  .log-item .log-date { font-family: var(--font); font-size: 11px; color: var(--brick); font-weight: 500; }
   .log-item .log-who { font-size: 12px; font-weight: 600; }
   .log-item .log-text { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
   .log-task-tag {
@@ -362,12 +359,12 @@
   /* Topic group rows in task table */
   tr.topic-row td {
     background: var(--primary-soft); cursor: pointer; user-select: none;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px;
+    font-family: var(--font); font-weight: 700; font-size: 13px;
     padding: 10px 14px; border-bottom: 1px solid var(--line);
   }
   tr.topic-row:hover td { background: #DCEAE5; }
   .topic-toggle { display: inline-block; width: 14px; color: var(--primary); }
-  .topic-meta { font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 10px; }
+  .topic-meta { font-family: var(--font); font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 10px; }
   .topic-progress-track { display: inline-block; width: 70px; height: 5px; background: #fff; border-radius: 3px; overflow: hidden; vertical-align: middle; margin-left: 8px; }
   .topic-progress-fill { height: 100%; background: var(--primary); }
   tr.subtask-row td:first-child { padding-left: 32px; color: var(--ink-soft); }
@@ -378,7 +375,7 @@
 
   /* Calendar */
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .cal-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; }
+  .cal-title { font-family: var(--font); font-size: 17px; font-weight: 700; }
   .cal-nav { display: flex; gap: 6px; align-items: center; }
   .cal-nav-btn {
     width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface);
@@ -386,7 +383,7 @@
   }
   .cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
   .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
-  .cal-weekday { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+  .cal-weekday { text-align: center; font-family: var(--font); font-size: 10px; color: var(--ink-soft); }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .cal-cell {
     background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
@@ -396,25 +393,25 @@
   .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
   .cal-cell.today { border-color: var(--brick); border-width: 2px; }
   .cal-cell.selected { background: var(--primary-soft); border-color: var(--primary); }
-  .cal-daynum { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  .cal-daynum { font-family: var(--font); font-size: 11px; color: var(--ink-soft); }
   .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
   .cal-dot {
     width: 18px; height: 18px; border-radius: 50%; color: #fff;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 500;
+    font-family: var(--font); font-size: 8px; font-weight: 500;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .cal-dot.free-hint { background: var(--done); }
-  .cal-overflow { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-soft); align-self: center; }
+  .cal-overflow { font-family: var(--font); font-size: 9px; color: var(--ink-soft); align-self: center; }
   .cal-detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-top: 18px; }
-  .cal-detail h3 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; margin: 0 0 4px; }
+  .cal-detail h3 { font-family: var(--font); font-size: 15px; margin: 0 0 4px; }
   .cal-detail .cal-detail-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 16px; }
   .cal-detail-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .cal-detail-col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 0 0 10px; }
+  .cal-detail-col h4 { font-family: var(--font); font-size: 11px; color: var(--ink-soft); margin: 0 0 10px; }
   .cal-person-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
   .cal-person-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .cal-person-info .name { font-size: 13px; font-weight: 600; }
   .cal-person-info .task-note { font-size: 11px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cal-assign-btn { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 6px; border: none; background: var(--primary); color: #fff; cursor: pointer; flex-shrink: 0; }
+  .cal-assign-btn { font-family: var(--font); font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 6px; border: none; background: var(--primary); color: #fff; cursor: pointer; flex-shrink: 0; }
   .cal-assign-btn:hover { opacity: .85; }
   @media (max-width: 640px) {
     .cal-detail-cols { grid-template-columns: 1fr; }
@@ -425,33 +422,33 @@
   .data-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 10px; max-width: 760px; }
   .data-note b { color: var(--ink); }
   .data-addr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .data-addr code { font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
+  .data-addr code { font-family: var(--font); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
   .data-addr .btn { padding: 5px 12px; }
 
   /* Added for the web version */
   .role-bar .btn-ghost { color: #fff; border-color: rgba(255,255,255,.3); }
   .role-actions { display: flex; gap: 8px; }
   .list-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
-  .list-controls label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
-  .list-controls select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--ink); font-family: 'Inter', sans-serif; }
-  .list-controls .count { font-size: 12px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; padding-bottom: 8px; }
-  .toolbar-note { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); font-weight: 400; margin-left: 10px; }
-  .log-month { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; margin: 14px 0 2px; color: var(--ink); }
-  .log-month span { font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 8px; }
+  .list-controls label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: var(--font); }
+  .list-controls select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--ink); font-family: var(--font); }
+  .list-controls .count { font-size: 12px; color: var(--ink-soft); font-family: var(--font); padding-bottom: 8px; }
+  .toolbar-note { font-family: var(--font); font-size: 11px; color: var(--ink-soft); font-weight: 400; margin-left: 10px; }
+  .log-month { font-family: var(--font); font-weight: 700; font-size: 14px; margin: 14px 0 2px; color: var(--ink); }
+  .log-month span { font-family: var(--font); font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 8px; }
   .pw-note { font-size: 13px; color: var(--ink-soft); margin: -6px 0 16px; line-height: 1.5; }
   .modal-card .field { margin-bottom: 12px; }
-  .wrap-range { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; min-width: 210px; text-align: center; }
+  .wrap-range { font-family: var(--font); font-weight: 700; font-size: 16px; min-width: 210px; text-align: center; }
   .wrap-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
   .wrap-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
-  .wrap-stat .num { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; display: block; color: var(--primary); }
-  .wrap-stat .lbl { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .08em; font-family: 'IBM Plex Mono', monospace; }
+  .wrap-stat .num { font-family: var(--font); font-size: 22px; font-weight: 500; display: block; color: var(--primary); }
+  .wrap-stat .lbl { font-size: 10px; color: var(--ink-soft); font-family: var(--font); }
   .wrap-member { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
   .wrap-member-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
   .wrap-member-head .counts { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
   .wrap-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-  .wrap-col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 0 0 8px; }
+  .wrap-col h4 { font-family: var(--font); font-size: 11px; color: var(--ink-soft); margin: 0 0 8px; }
   .wrap-item { background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12.5px; line-height: 1.45; }
-  .wrap-item .meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-soft); display: block; margin-top: 2px; }
+  .wrap-item .meta { font-family: var(--font); font-size: 10.5px; color: var(--ink-soft); display: block; margin-top: 2px; }
   .wrap-item ul { margin: 4px 0 0; padding-left: 16px; color: var(--ink-soft); }
   .wrap-quiet { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
   @media (max-width: 640px) { .role-bar { flex-wrap: wrap; gap: 8px; } }
@@ -471,13 +468,118 @@
   .tab-btn.active .tab-count { background: #fff; color: var(--ink); }
   .group-head { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
   .group-head .member-name { font-size: 14px; }
-  .group-head .count-pill { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  .group-head .count-pill { font-family: var(--font); font-size: 11px; color: var(--ink-soft); }
   .item-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
-  .item-row .meta { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: 3px; }
+  .item-row .meta { font-size: 11px; color: var(--ink-soft); font-family: var(--font); margin-top: 3px; }
   .item-row .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .item-row .btn { padding: 6px 12px; }
-  .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; margin: 22px 0 10px; }
+  .section-title { font-family: var(--font); font-size: 15px; margin: 22px 0 10px; }
   .member-counts { display: flex; gap: 6px; flex-wrap: wrap; margin: -6px 0 10px; }
+
+  /* ===================== Giao diện gọn: ít màu, ít khung, một font ===================== */
+  body { font-family: var(--font); font-size: 14px; line-height: 1.45; }
+  .app { max-width: 1160px; padding: 18px 24px 64px; }
+  .num, .duration, .tab-count, .summary b, .mdue { font-variant-numeric: tabular-nums; }
+  h1, h2, h3, .member-name, .btn, .tab-btn { font-family: var(--font); }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; padding: 6px 0 12px; }
+  .topbar h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .account { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); }
+  .account #roleUserName { color: var(--ink); font-weight: 500; }
+  .role-pill { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
+  .role-pill.admin { background: var(--primary-soft); color: var(--primary); }
+  .role-pill.staff { background: #ECEFEE; color: var(--ink-soft); }
+  .storage-indicator { margin: 0; padding: 0; border-radius: 0; background: none !important; font-size: 12px; }
+  .storage-indicator.ok { color: var(--ink-soft); }
+  .storage-indicator.warn { color: var(--blocked); font-weight: 500; }
+  .link-btn { background: none; border: none; padding: 0; font: inherit; color: var(--ink-soft); cursor: pointer; }
+  .link-btn:hover, .link-btn:focus-visible { color: var(--primary); text-decoration: underline; }
+
+  .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 0 22px; border-bottom: 1px solid var(--line); margin: 0 0 22px; }
+  .tab-btn { font-size: 14px; font-weight: 500; background: none; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 10px 0 9px; margin-bottom: -1px; color: var(--ink-soft); }
+  .tab-btn:hover { color: var(--ink); border-color: transparent; }
+  .tab-btn.active { background: none; color: var(--ink); border-color: var(--primary); }
+  .tab-count { background: #E9EDEB; color: var(--ink-soft); font-size: 11px; font-weight: 600; }
+  .tab-btn.active .tab-count { background: var(--primary-soft); color: var(--primary); }
+  .tab-more { position: relative; }
+  .tab-more > summary { list-style: none; cursor: pointer; padding: 10px 0 9px; margin-bottom: -1px; font-size: 14px; font-weight: 500; color: var(--ink-soft); border-bottom: 2px solid transparent; }
+  .tab-more > summary::-webkit-details-marker { display: none; }
+  .tab-more > summary::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-3px) rotate(45deg); }
+  .tab-more > summary:hover { color: var(--ink); }
+  .tab-more.has-active > summary { color: var(--ink); border-color: var(--primary); }
+  .tab-menu { position: absolute; top: calc(100% + 6px); left: -10px; z-index: 40; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px; box-shadow: 0 10px 28px rgba(31,42,40,.12); display: flex; flex-direction: column; }
+  .tab-menu .tab-btn { width: 100%; text-align: left; padding: 8px 10px; margin: 0; border: none; border-radius: 6px; }
+  .tab-menu .tab-btn:hover { background: var(--bg); }
+  .tab-menu .tab-btn.active { background: var(--primary-soft); color: var(--primary); }
+
+  .dash-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; margin-bottom: 16px; }
+  .dash-head h2 { font-size: 17px; font-weight: 600; margin: 0; }
+  .dash-note { font-size: 13px; color: var(--ink-soft); margin: 3px 0 0; }
+  .summary { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--ink-soft); }
+  .summary .sum { display: inline-flex; align-items: center; gap: 6px; }
+  .summary b { color: var(--ink); font-weight: 600; }
+  .summary .sum[class*="st-"]::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--todo); }
+  .summary .st-progress::before { background: var(--progress) !important; }
+  .summary .st-blocked::before { background: var(--blocked) !important; }
+  .summary .st-done::before { background: var(--done) !important; }
+
+  .member-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  .member-card { padding: 16px 16px 10px; border-radius: 12px; }
+  .member-top { gap: 10px; margin-bottom: 2px; align-items: center; }
+  .member-card .avatar { width: 30px; height: 30px; font-size: 12px; }
+  .member-name { font-size: 15px; font-weight: 600; }
+  .mcounts { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 8px 40px; }
+  .mcounts b { color: var(--ink); font-weight: 600; }
+  .mtask { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; background: none; border: none; border-top: 1px solid var(--line); padding: 9px 2px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+  .mtask:hover .mtitle, .mtask:focus-visible .mtitle { color: var(--primary); }
+  .mtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+  .mdue { font-size: 12px; color: var(--ink-soft); }
+  .mdue.late { color: var(--blocked); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--todo); }
+  .dot.st-progress { background: var(--progress); }
+  .dot.st-blocked { background: var(--blocked); }
+  .dot.st-done { background: var(--done); }
+  .mmore { display: block; margin: 4px 0 2px; font-size: 13px; }
+  .member-card .no-task { padding: 6px 0 6px 40px; font-style: normal; font-size: 13px; }
+
+  .badge { background: none !important; padding: 0; border-radius: 0; font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+  .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .badge.todo { color: #7C868B; }
+  .badge.progress { color: #A8741C; }
+  .updated-today-badge { background: none; color: var(--primary); padding: 0; margin-left: 8px; font-size: 12px; font-weight: 500; }
+
+  .btn { font-weight: 500; font-size: 13.5px; border-radius: 8px; padding: 8px 14px; }
+  .btn-ghost, .btn-brick { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover, .btn-brick:hover { border-color: var(--primary); color: var(--primary); opacity: 1; }
+  .toolbar h2 { font-size: 17px; font-weight: 600; }
+  .toolbar-note { font-size: 12.5px; color: var(--ink-soft); font-weight: 400; margin-left: 10px; }
+  .field label, .login-card label { font-size: 12.5px; color: var(--ink-soft); font-weight: 500; }
+  .task-table th { font-size: 12px; font-weight: 500; background: var(--surface); color: var(--ink-soft); }
+  tr.topic-row td { background: #F6F8F7; font-weight: 600; font-size: 13.5px; }
+  tr.topic-row:hover td { background: #EEF3F1; }
+  tr.subtask-row td:first-child::before { content: none; }
+  .topic-meta { font-size: 12px; font-weight: 400; }
+  .cal-cell.today { border-color: var(--primary); }
+  .login-overlay { background: var(--bg); }
+  .login-card { box-shadow: 0 1px 2px rgba(31,42,40,.06); border: 1px solid var(--line); }
+  .login-eyebrow { font-size: 13px; color: var(--ink-soft); }
+  .modal-eyebrow { font-size: 12.5px; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  header.topbar { border-bottom: none; margin-bottom: 0; align-items: center; }
+  .task-table th { white-space: nowrap; }
+  tr.subtask-row td:first-child { color: var(--ink); }
+  .toolbar-actions { align-items: center; flex-wrap: wrap; }
+  .btn-menu > summary.btn { display: inline-flex; align-items: center; padding: 8px 14px; margin: 0; border: 1px solid var(--line); color: var(--ink); }
+  .btn-menu > summary.btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-menu .tab-menu { left: auto; right: 0; min-width: 270px; }
+  .menu-item { background: none; border: none; text-align: left; font: inherit; font-size: 13.5px; color: var(--ink); padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+  .menu-item:hover, .menu-item:focus-visible { background: var(--bg); color: var(--primary); }
+  @media (max-width: 640px) {
+    .app { padding: 12px 14px 48px; }
+    .tabs { gap: 0 16px; }
+    .member-grid { grid-template-columns: 1fr; }
+    .summary { gap: 4px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -485,7 +587,7 @@
 <!-- ---------- LOGIN OVERLAY ---------- -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card loading" id="loginCard">
-    <p class="login-eyebrow">Team Tracker · Login</p>
+    <p class="login-eyebrow">Team Tracker</p>
     <h2>Sign in</h2>
     <div class="field">
       <label for="loginUsername">Username</label>
@@ -504,50 +606,56 @@
 
 <div class="app">
 
-  <header>
-    <div>
-      <p class="brand-eyebrow">Team Ops · Log 001</p>
-      <h1>Team Tracker</h1>
-    </div>
-    <div class="header-stats">
-      <div class="stat"><span class="num" id="statMembers">0</span><span class="lbl">Members</span></div>
-      <div class="stat"><span class="num" id="statActive">0</span><span class="lbl">Active tasks</span></div>
-      <div class="stat st-todo"><span class="num" id="statTodo">0</span><span class="lbl">Not started</span></div>
-      <div class="stat st-progress"><span class="num" id="statProgress">0</span><span class="lbl">In progress</span></div>
-      <div class="stat st-blocked"><span class="num" id="statPending">0</span><span class="lbl">Pending</span></div>
-      <div class="stat st-done"><span class="num" id="statDone">0</span><span class="lbl" id="statDoneLbl">Done</span></div>
+  <header class="topbar">
+    <h1>Team Tracker</h1>
+    <div class="account">
+      <span class="role-pill admin" id="rolePill">Manager</span>
+      <span id="roleUserName"></span>
+      <span class="storage-indicator ok" id="storageIndicator">Saved</span>
+      <button class="link-btn" onclick="openPasswordModal(false)">Change password</button>
+      <button class="link-btn" onclick="doLogout()">Log out</button>
     </div>
   </header>
 
-  <div class="role-bar">
-    <div class="who">
-      <span>Signed in:</span>
-      <span class="role-pill admin" id="rolePill">Manager</span>
-      <span id="roleUserName"></span>
-      <span class="storage-indicator ok" id="storageIndicator">☁ Synced</span>
-    </div>
-    <div class="role-actions">
-      <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
-      <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
-    </div>
-  </div>
-
-  <div class="tabs">
+  <nav class="tabs" aria-label="Sections">
     <button class="tab-btn active" data-view="dashboard">Dashboard</button>
-    <button class="tab-btn" data-view="timeline">Timeline</button>
-    <button class="tab-btn" data-view="calendar">Calendar</button>
     <button class="tab-btn" data-view="tasks">Task List</button>
     <button class="tab-btn" data-view="pending">Pending<span class="tab-count" id="pendingCount" hidden></span></button>
-    <button class="tab-btn" data-view="compare">Compare</button>
     <button class="tab-btn" data-view="log">Daily Log</button>
     <button class="tab-btn" data-view="wrapup">Weekly Wrap-up</button>
-    <button class="tab-btn" data-view="team" data-admin-only>Members &amp; Accounts</button>
-    <button class="tab-btn" data-view="data" data-admin-only>Data &amp; Excel</button>
-  </div>
+    <details class="tab-more">
+      <summary>More</summary>
+      <div class="tab-menu">
+        <button class="tab-btn" data-view="timeline">Timeline</button>
+        <button class="tab-btn" data-view="calendar">Calendar</button>
+        <button class="tab-btn" data-view="compare">Compare</button>
+      </div>
+    </details>
+    <details class="tab-more" data-admin-only>
+      <summary>Manage</summary>
+      <div class="tab-menu">
+        <button class="tab-btn" data-view="team" data-admin-only>Members &amp; Accounts</button>
+        <button class="tab-btn" data-view="data" data-admin-only>Data &amp; Excel</button>
+      </div>
+    </details>
+  </nav>
 
   <!-- DASHBOARD -->
   <div class="view active" id="view-dashboard">
-    <div class="toolbar"><h2>Who's working on what<span class="toolbar-note">A → Z · Not started, then In progress · Pending tasks are in the Pending tab</span></h2></div>
+    <div class="dash-head">
+      <div>
+        <h2>Who's working on what</h2>
+        <p class="dash-note">Sorted by name. Pending tasks are listed under Pending.</p>
+      </div>
+      <div class="summary">
+        <span class="sum"><b id="statActive">0</b> active</span>
+        <span class="sum st-todo"><b id="statTodo">0</b> not started</span>
+        <span class="sum st-progress"><b id="statProgress">0</b> in progress</span>
+        <span class="sum st-blocked"><b id="statPending">0</b> pending</span>
+        <span class="sum st-done"><b id="statDone">0</b> <span id="statDoneLbl">done</span></span>
+        <span id="statMembers" hidden></span>
+      </div>
+    </div>
     <div class="member-grid" id="dashboardGrid"></div>
   </div>
 
@@ -590,9 +698,14 @@
     <div class="toolbar">
       <h2>All Tasks (by Topic)</h2>
       <div class="toolbar-actions">
-        <button class="btn btn-brick" data-admin-only onclick="exportExcel()">⬇ Export Excel</button>
-        <button class="btn btn-brick" data-admin-only onclick="exportCSV()">⬇ Export Summary (CSV)</button>
-        <button class="btn btn-brick" data-admin-only onclick="openWeekReportPanel()">📅 Weekly Update Report</button>
+        <details class="tab-more btn-menu" data-admin-only>
+          <summary class="btn btn-ghost">Export</summary>
+          <div class="tab-menu">
+            <button class="menu-item" onclick="exportExcel()">Excel: all tasks, updates and daily log</button>
+            <button class="menu-item" onclick="exportCSV()">Summary (CSV)</button>
+            <button class="menu-item" onclick="openWeekReportPanel()">Weekly update report (CSV)</button>
+          </div>
+        </details>
         <button class="btn btn-ghost" data-admin-only onclick="togglePanel('topicPanel')">+ Add Topic</button>
         <button class="btn btn-primary" id="addTaskBtn" onclick="openAddTaskPanel()">+ Add Subtask</button>
       </div>
@@ -627,7 +740,7 @@
           <input id="weekPickDate" type="date" oninput="updateWeekRangePreview()">
         </div>
       </div>
-      <div class="sub" id="weekRangePreview" style="margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-family:'IBM Plex Mono',monospace;"></div>
+      <div class="sub" id="weekRangePreview" style="margin-bottom:12px;color:var(--ink-soft);font-size:12px;"></div>
       <button class="btn btn-primary" onclick="exportWeeklyReport()">⬇ Export This Week (CSV)</button>
       <button class="btn btn-ghost" onclick="togglePanel('weekReportPanel')">Cancel</button>
     </div>
@@ -664,7 +777,7 @@
       <thead>
         <tr>
           <th>Task</th><th>Assignee</th><th>Start</th><th>Due date</th>
-          <th>Duration (busy days)</th><th>Status</th><th></th>
+          <th>Days</th><th>Status</th><th></th>
         </tr>
       </thead>
       <tbody id="taskTbody"></tbody>
@@ -925,7 +1038,7 @@ function applyState(st){
 function updateStorageIndicator(state, detail){
   const el = document.getElementById('storageIndicator');
   if(!el) return;
-  const map = { synced: ['☁ Saved', 'ok'], saving: ['⟳ Saving…', 'ok'], offline: ['⚠ Offline: retrying…', 'warn'], error: ['⚠ ' + (detail || 'Not saved'), 'warn'] };
+  const map = { synced: ['Saved', 'ok'], saving: ['Saving…', 'ok'], offline: ['Offline, retrying…', 'warn'], error: [detail || 'Not saved', 'warn'] };
   const [text, cls] = map[state] || map.synced;
   el.textContent = text;
   el.className = 'storage-indicator ' + cls;
@@ -1104,6 +1217,15 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   });
 });
 function togglePanel(id){ document.getElementById(id).classList.toggle('open'); }
+
+// Menu More / Manage: đóng lại sau khi chọn, đánh dấu khi đang mở một tab bên trong
+function syncTabMenus(){
+  document.querySelectorAll('.tab-more').forEach(d => { d.open = false; d.classList.toggle('has-active', !!d.querySelector('.tab-btn.active')); });
+}
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', syncTabMenus));
+document.querySelectorAll('.menu-item').forEach(btn => btn.addEventListener('click', () => { const d = btn.closest('details'); if(d) d.open = false; }));
+document.addEventListener('click', (e) => { if(!e.target.closest('.tab-more')) document.querySelectorAll('.tab-more[open]').forEach(d => d.open = false); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') document.querySelectorAll('.tab-more[open]').forEach(d => d.open = false); });
 
 // ================= TOPICS =================
 let collapsedTopics = new Set();
@@ -1547,11 +1669,11 @@ function renderRoleBar(){
   const pill = document.getElementById('rolePill'), nameEl = document.getElementById('roleUserName');
   if(currentRole === 'admin'){
     pill.textContent = 'Manager'; pill.className = 'role-pill admin';
-    nameEl.textContent = `(${currentAccount.username}) — full access`;
+    nameEl.textContent = currentAccount.username;
     document.body.classList.remove('role-staff'); document.body.classList.add('role-admin');
   } else {
     pill.textContent = 'Staff'; pill.className = 'role-pill staff';
-    nameEl.textContent = `— ${memberName(currentUserId)} (${currentAccount.username})`;
+    nameEl.textContent = memberName(currentUserId);
     document.body.classList.remove('role-admin'); document.body.classList.add('role-staff');
   }
   document.querySelectorAll('[data-admin-only]').forEach(el => { el.style.display = currentRole === 'admin' ? '' : 'none'; });
@@ -1572,7 +1694,7 @@ function renderStats(){
   document.getElementById('statProgress').textContent = c('progress');
   document.getElementById('statPending').textContent = c('blocked');
   document.getElementById('statDone').textContent = c('done');
-  document.getElementById('statDoneLbl').textContent = `Done ${THIS_YEAR}`;
+  document.getElementById('statDoneLbl').textContent = `done in ${THIS_YEAR}`;
   const pendingN = c('blocked');
   const pc = document.getElementById('pendingCount'); pc.hidden = !pendingN; pc.textContent = pendingN;
 }
@@ -1582,21 +1704,28 @@ function renderAssigneeSelect(){
 }
 
 // Dashboard: thành viên A → Z; chỉ Not started rồi In progress (Pending ở tab riêng)
+// Dashboard: thành viên A → Z; mỗi thẻ chỉ hiện số lượng và vài task đầu (Not started trước, rồi In progress)
+const expandedMembers = new Set();
+function toggleMemberTasks(id){ if(expandedMembers.has(id)) expandedMembers.delete(id); else expandedMembers.add(id); renderDashboard(); }
 function renderDashboard(){
   const grid = document.getElementById('dashboardGrid');
   if(!members.length){ grid.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
+  const today = todayPlus(0), PREVIEW = 3;
   grid.innerHTML = sortedMembers().map(m => {
     const active = tracked().filter(t => t.assigneeId === m.id && (t.status === 'todo' || t.status === 'progress'))
       .sort((a,b) => (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || String(a.end).localeCompare(String(b.end)));
     const nNot = active.filter(t => t.status === 'todo').length, nProg = active.length - nNot;
-    const list = active.length ? `<div class="member-tasks-list">${active.map(t => {
-      const tp = topics.find(tp=>tp.id===t.topicId);
-      return `<div class="member-current st-${t.status}" onclick="openTaskDetail(${t.id})" style="cursor:pointer"><div class="task-title">${esc(tp ? tp.name + ' › ' : '')}${esc(t.title)}</div>
-        <div class="task-meta">Day ${Math.max(daysBetween(t.start, todayPlus(0)),0)}/${daysBetween(t.start, t.end)} · <span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span></div></div>`;
-    }).join('')}</div>` : `<div class="no-task">No active tasks</div>`;
-    return `<div class="member-card"><div class="member-top">${renderAvatar(m)}<div><div class="member-name">${esc(m.name)}</div><div class="member-role">${esc(m.role)}</div></div></div>
-      <div class="member-counts"><span class="badge todo">${nNot} not started</span><span class="badge progress">${nProg} in progress</span></div>
-      ${list}<div class="member-load"><span>${active.length} active</span><div class="load-bar"><div class="load-fill" style="width:${Math.min(100, active.length * 10)}%"></div></div></div></div>`;
+    const open = expandedMembers.has(m.id);
+    const shown = open ? active : active.slice(0, PREVIEW);
+    const rows = shown.map(t => `<button class="mtask" onclick="openTaskDetail(${t.id})" title="${esc(t.title)}">
+        <span class="dot st-${t.status}" aria-label="${statusMeta[t.status].label}"></span>
+        <span class="mtitle">${esc(t.title)}</span>
+        <span class="mdue${t.end < today ? ' late' : ''}">${fmtDate(t.end)}</span></button>`).join('');
+    const more = active.length > PREVIEW
+      ? `<button class="link-btn mmore" onclick="toggleMemberTasks(${m.id})">${open ? 'Show less' : `Show all ${active.length}`}</button>` : '';
+    return `<div class="member-card"><div class="member-top">${renderAvatar(m)}<div class="member-name">${esc(m.name)}</div></div>
+      <div class="mcounts"><b>${nNot}</b> not started, <b>${nProg}</b> in progress</div>
+      ${active.length ? rows + more : '<div class="no-task">No active tasks</div>'}</div>`;
   }).join('');
 }
 
@@ -1694,7 +1823,7 @@ function renderTasks(){
     const adminBtns = currentRole === 'admin' ? `<button class="topic-del-btn" onclick="event.stopPropagation(); removeTopic(${tp.id})" title="Delete topic">✕</button><button class="topic-del-btn" onclick="event.stopPropagation(); renameTopic(${tp.id})" title="Rename topic" style="margin-right:8px">✎</button>` : '';
     html += `<tr class="topic-row" onclick="toggleTopic(${tp.id})"><td colspan="7"><span class="topic-toggle">${collapsed ? '▸' : '▾'}</span>${esc(tp.name)}
       <span class="topic-meta">${doneCount}/${counted.length} subtasks done</span><span class="topic-progress-track"><span class="topic-progress-fill" style="width:${pct}%"></span></span>${adminBtns}
-      <div class="topic-meta" style="margin:4px 0 0 24px">${byStatus}${filtering ? ` · showing ${subs.length}` : ''}</div></td></tr>`;
+      ${filtering ? `<div class="topic-meta" style="margin:4px 0 0 24px">Showing ${subs.length} of ${counted.length}</div>` : ''}</td></tr>`;
     if(!subs.length) html += `<tr class="subtask-row${collapsed?' collapsed':''}"><td colspan="7" style="padding-left:32px;color:var(--ink-soft);font-style:italic;">No subtasks yet.</td></tr>`;
     subs.forEach(t => {
       const canEdit = taskCanEdit(t);
@@ -1707,7 +1836,7 @@ function renderTasks(){
       html += `<tr class="subtask-row${collapsed?' collapsed':''}">
         <td><span class="task-title-link" onclick="openTaskDetail(${t.id})">${esc(t.title)}</span>${taskUpdatedToday(t) ? '<span class="updated-today-badge">Updated today</span>' : ''}</td>
         <td>${esc(memberName(t.assigneeId))}${t.support ? `<br><span style="font-size:10px;color:var(--ink-soft);font-style:italic">supported by: ${esc(t.support)}</span>` : ''}</td>
-        <td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td class="duration">${daysBetween(t.start, t.end)} days</td>
+        <td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td class="duration">${daysBetween(t.start, t.end)}</td>
         <td>${statusCell}</td><td style="white-space:nowrap">${actions}</td></tr>`;
     });
   });
