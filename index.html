@@ -139,6 +139,11 @@
   .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
   .modal-actions .right { display: flex; gap: 8px; margin-left: auto; }
   .detail-notes { white-space: pre-wrap; font-size: 14px; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+  .cal-url { display: flex; gap: 8px; margin-bottom: 8px; }
+  .cal-url input { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .steps { font-size: 14px; line-height: 1.55; padding-left: 20px; margin: 6px 0 14px; }
+  .steps li { margin-bottom: 4px; }
+  .note { font-size: 13px; color: var(--ink-soft); background: var(--bg); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
   .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; max-width: calc(100% - 32px); }
@@ -181,6 +186,7 @@
     <div class="header-actions">
       <span class="sync" id="sync">☁ Saved</span>
       <button class="btn" onclick="openTaskForm()">+ New task</button>
+      <button class="btn btn-ghost" onclick="openCalendarModal()">🔔 Calendar reminders</button>
       <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
     </div>
@@ -241,7 +247,8 @@
       </div>
     </div>
     <div class="cal-grid" id="calGrid"></div>
-    <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).</p>
+    <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).
+      Want reminders on your phone? <a href="#" onclick="openCalendarModal();return false">Connect to Google / Apple Calendar</a>.</p>
   </div>
 
   <!-- LOG -->
@@ -314,6 +321,34 @@
       </div>
     </div>
   </form>
+</div>
+
+<!-- CALENDAR REMINDERS -->
+<div class="overlay" id="calOverlay" onclick="if(event.target===this)closeOverlay('calOverlay')">
+  <div class="modal">
+    <h2>🔔 Calendar reminders</h2>
+    <p style="font-size:14px;margin-top:-6px">Subscribe to this private link in your calendar app. Every unfinished task with a deadline shows up on its deadline day, and overdue tasks also appear on today so you remember to continue them.</p>
+    <div class="field"><label for="calUrl">Your private calendar link</label>
+      <div class="cal-url"><input id="calUrl" readonly value="Loading…" onclick="this.select()"><button class="btn" onclick="copyCalUrl()">Copy</button></div>
+    </div>
+    <h3 style="font-size:15px;margin:14px 0 4px">Google Calendar</h3>
+    <ol class="steps">
+      <li>Copy the link above.</li>
+      <li>On a computer, open <a href="https://calendar.google.com/calendar/u/0/r/settings/addbyurl" target="_blank" rel="noopener">Google Calendar → Add calendar → From URL</a>, paste the link, click <b>Add calendar</b>.</li>
+      <li>In Settings, click <b>My Tracker</b> (under “Other calendars”) and set <b>All-day event notifications</b>, e.g. “1 day before at 9:00” and “On the day at 8:00”.</li>
+    </ol>
+    <h3 style="font-size:15px;margin:14px 0 4px">iPhone / Apple Calendar</h3>
+    <ol class="steps">
+      <li>Settings → Calendar → Accounts → Add Account → Other → <b>Add Subscribed Calendar</b>, paste the link.</li>
+      <li>Reminders come with the calendar: 9:00 the day before and 8:00 on the deadline day.</li>
+    </ol>
+    <div class="note">Google refreshes subscribed calendars on its own schedule (usually every few hours up to a day), so new tasks can take a while to appear. For something urgent, open the task and use <b>Add to Google Calendar</b>, which adds it right away.</div>
+    <div class="note">Anyone with this link can see your task titles and deadlines. If it leaks, click <b>New link</b>: the old link stops working and you subscribe again with the new one.</div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="resetCalUrl()">New link</button>
+      <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('calOverlay')">Close</button></div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -499,6 +534,7 @@ function renderDetail(){
     <div class="card">${list.length ? list.map(logItem).join('') : '<div class="empty">No updates yet.</div>'}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="openTaskForm(${t.id})">✎ Edit task</button>
+      ${t.due ? `<a class="btn btn-ghost" style="text-decoration:none" href="${googleCalLink(t)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a>` : ''}
       <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('detailOverlay')">Close</button></div>
     </div>`;
 }
@@ -506,6 +542,33 @@ async function addDetailUpdate(){
   const body = document.getElementById('dUpdate').value.trim();
   if(!body) return;
   await mutate(() => TT.addUpdate(openDetailId, body));
+}
+
+// ---------- calendar reminders ----------
+function googleCalLink(t){
+  const d = t.due.replace(/-/g, ''), next = addDays(t.due, 1).replace(/-/g, '');
+  const details = [t.topic ? `Topic: ${t.topic}` : '', t.notes, location.origin + location.pathname].filter(Boolean).join('\n\n');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent('📌 ' + t.title) + '&dates=' + d + '/' + next + '&details=' + encodeURIComponent(details);
+}
+async function openCalendarModal(){
+  const input = document.getElementById('calUrl');
+  input.value = 'Loading…';
+  document.getElementById('calOverlay').classList.add('open');
+  try { input.value = await TT.calendarUrl(false); }
+  catch(e){ input.value = ''; handleError(e); }
+}
+async function copyCalUrl(){
+  const input = document.getElementById('calUrl');
+  if(!/^https:/.test(input.value)) return;
+  try { await navigator.clipboard.writeText(input.value); }
+  catch(e){ input.select(); document.execCommand('copy'); }
+  toast('Link copied.');
+}
+async function resetCalUrl(){
+  if(!confirm('Create a new link? The current link will stop working and you will need to subscribe again.')) return;
+  try { document.getElementById('calUrl').value = await TT.calendarUrl(true); toast('New link created. Subscribe again with it.'); }
+  catch(e){ handleError(e); }
 }
 
 // ---------- log ----------
@@ -629,7 +692,7 @@ document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', (
 }));
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['taskFormOverlay', 'detailOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+  ['taskFormOverlay', 'detailOverlay', 'calOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
 });
 // Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
 document.addEventListener('visibilitychange', () => {
