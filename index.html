@@ -2,12 +2,12 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Team Tracker</title>
+<title>My Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
 <!-- Supabase (đăng nhập + dữ liệu). Phiên bản cố định để trang không tự thay đổi. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
-<script src="lib/xlsx.js"></script>
 <script src="lib/data.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -33,1926 +33,614 @@
   }
 
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .app { max-width: 1180px; margin: 0 auto; padding: 32px 24px 80px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .app { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  body.locked .app { display: none; }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
 
-  /* ---------- LOGIN OVERLAY ---------- */
-  .login-overlay {
-    position: fixed; inset: 0; background: var(--ink);
-    display: flex; align-items: center; justify-content: center; z-index: 100;
-  }
-  .login-card {
-    background: var(--surface); border-radius: 14px; padding: 34px 32px; width: 340px;
-    box-shadow: 0 20px 50px rgba(0,0,0,.35);
-  }
-  .login-eyebrow {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--brick); margin: 0 0 6px;
-  }
-  .login-card h2 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 20px; font-size: 22px; }
-  .login-card .field { margin-bottom: 12px; }
-  .login-card label { display:block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family:'IBM Plex Mono',monospace; text-transform: uppercase; letter-spacing:.05em; }
-  .login-card input {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
-    font-family: 'Inter', sans-serif; font-size: 14px; background: var(--bg); color: var(--ink);
-  }
-  .login-error { color: var(--blocked); font-size: 12px; margin: 4px 0 10px; min-height: 14px; }
-  .login-hint {
-    margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line);
-    font-size: 11px; color: var(--ink-soft); line-height: 1.7; font-family: 'IBM Plex Mono', monospace;
-  }
-  .login-hint b { color: var(--ink); }
-  .login-card.loading .field, .login-card.loading .login-hint { opacity: .35; pointer-events: none; }
-  .login-card.loading .btn { opacity: .35; pointer-events: none; }
-  .login-loading-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 10px; display: none; font-family: 'IBM Plex Mono', monospace; }
-  .login-card.loading .login-loading-note { display: block; }
-  .storage-indicator { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
-  .storage-indicator.ok { background: rgba(255,255,255,.15); color: #cde9e2; }
-  .storage-indicator.warn { background: var(--brick); color: #fff; }
+  /* ---------- LOGIN ---------- */
+  .login-overlay { position: fixed; inset: 0; background: var(--ink); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  body.locked .login-overlay { display: flex; }
+  .login-card { background: var(--surface); border-radius: 14px; padding: 34px 32px; width: 100%; max-width: 360px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--brick); margin: 0 0 6px; }
+  .login-card h2 { margin: 0 0 20px; font-size: 22px; }
+  .login-error { color: var(--blocked); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
 
-  /* Avatar customization */
-  .avatar-picker-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-  .avatar-preview { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; background: var(--primary-soft); color: var(--primary); flex-shrink: 0; }
-  .avatar-picker-fields { display: flex; gap: 10px; flex: 1; }
-  .avatar-picker-fields .field { flex: 1; }
-  .avatar-picker-fields input[type="text"] { text-align: center; font-size: 16px; }
-  .avatar-picker-fields input[type="color"] { padding: 2px; height: 38px; cursor: pointer; }
-  .emoji-swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .emoji-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface);
-    font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .emoji-swatch:hover { border-color: var(--primary); }
+  /* ---------- FORM ---------- */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
+  input, select, textarea { width: 100%; font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  textarea { resize: vertical; min-height: 70px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-danger { background: transparent; color: var(--blocked); border-color: var(--blocked-bg); }
+  .btn-block { width: 100%; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--ink-soft); font-size: 15px; padding: 4px 6px; border-radius: 6px; }
+  .icon-btn:hover { background: var(--bg); color: var(--ink); }
 
-  /* Task detail modal */
-  .task-title-link { cursor: pointer; }
-  .task-title-link:hover { color: var(--primary); text-decoration: underline; }
-  .updated-today-badge {
-    display: inline-block; font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
-    background: var(--primary); color: #fff; margin-left: 6px; text-transform: uppercase; letter-spacing: .04em;
-    font-family: 'IBM Plex Mono', monospace; vertical-align: middle;
-  }
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(15,25,23,.55); z-index: 90;
-    display: none; align-items: center; justify-content: center; padding: 20px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal-card {
-    background: var(--surface); border-radius: 14px; padding: 26px; width: 100%; max-width: 560px;
-    max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.3); position: relative;
-  }
-  .modal-close-btn {
-    position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 20px;
-    color: var(--ink-soft); cursor: pointer; line-height: 1;
-  }
-  .modal-close-btn:hover { color: var(--ink); }
-  .modal-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--brick); margin: 0 0 6px; }
-  .modal-card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 19px; margin: 0 0 14px; padding-right: 24px; }
-  .modal-meta-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; font-size: 12px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
-  .modal-meta-row b { color: var(--ink); font-family: 'Inter', sans-serif; }
-  .modal-section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 18px 0 10px; }
-  .update-item { background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
-  .update-item .update-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-  .update-item .update-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--brick); font-weight: 500; }
-  .update-item .update-text { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
-  .update-add-box textarea {
-    width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-    font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); resize: vertical; margin-bottom: 8px;
-  }
-
-  /* Header */
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 28px;
-    border-bottom: 2px solid var(--ink);
-    padding-bottom: 18px;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .brand-eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--brick);
-    margin: 0 0 6px;
-  }
-  h1 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 30px;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-  .header-stats {
-    display: flex;
-    gap: 22px;
-    font-family: 'IBM Plex Mono', monospace;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .stat { text-align: right; }
-  .stat .num { font-size: 22px; font-weight: 500; color: var(--primary); display:block; }
-  .stat .lbl { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
-  .stat.st-todo .num { color: var(--todo); }
+  /* ---------- HEADER ---------- */
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+  header h1 { margin: 0; font-size: 34px; letter-spacing: -.02em; }
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sync { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  .sync.err { color: var(--blocked); }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 22px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+  .stat .num { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; }
+  .stat .lbl { font-size: 12px; color: var(--ink-soft); }
   .stat.st-progress .num { color: var(--progress); }
-  .stat.st-blocked .num { color: var(--blocked); }
+  .stat.st-pending .num { color: var(--blocked); }
+  .stat.st-overdue .num { color: var(--brick); }
   .stat.st-done .num { color: var(--done); }
 
-  /* Role bar */
-  .role-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--ink); color: #fff; border-radius: 8px;
-    padding: 10px 16px; margin-bottom: 20px; font-size: 12px;
-  }
-  .role-bar .who { display: flex; align-items: center; gap: 10px; font-family: 'IBM Plex Mono', monospace; }
-  .role-pill {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11px;
-    padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .04em;
-  }
-  .role-pill.admin { background: var(--primary); color: #fff; }
-  .role-pill.staff { background: var(--progress); color: #fff; }
-
-  /* Tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap; }
-  .tab-btn {
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    padding: 9px 18px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--ink-soft);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .tab-btn:hover { border-color: var(--primary); color: var(--primary); }
-  .tab-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-
+  /* ---------- TABS ---------- */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }
+  .tab-btn { font: inherit; font-size: 14px; font-weight: 500; background: none; border: none; padding: 10px 14px; cursor: pointer; color: var(--ink-soft); border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--primary); }
   .view { display: none; }
   .view.active { display: block; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar h2 { margin: 0; font-size: 20px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filters input, .filters select { width: auto; min-width: 140px; }
 
-  /* Dashboard cards */
-  .member-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .member-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 18px;
-  }
-  .member-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .avatar {
-    width: 38px; height: 38px; border-radius: 50%;
-    background: var(--primary-soft); color: var(--primary);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;
-    flex-shrink: 0;
-  }
-  .member-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
-  .member-role { font-size: 12px; color: var(--ink-soft); }
-  .member-current {
-    background: var(--bg);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    border-left: 3px solid var(--todo);
-  }
-  .member-current.st-todo { border-left-color: var(--todo); }
-  .member-current.st-progress { border-left-color: var(--progress); background: var(--progress-bg); }
-  .member-current.st-blocked { border-left-color: var(--blocked); background: var(--blocked-bg); }
-  .member-tasks-list { display: flex; flex-direction: column; gap: 0; max-height: 260px; overflow-y: auto; margin-bottom: 10px; }
-  .member-current .task-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-  .member-current .task-meta { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
-  .no-task { font-size: 12px; color: var(--ink-soft); font-style: italic; padding: 10px 12px; }
-  .member-load {
-    display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--ink-soft);
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .load-bar { flex: 1; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
-  .load-fill { height: 100%; background: var(--primary); }
+  /* ---------- TASKS ---------- */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .section { margin-bottom: 22px; }
+  .section h3 { font-size: 15px; margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+  .section h3 .count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); font-weight: 400; }
+  .task { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .task:first-child { border-top: none; }
+  .task-title { font-weight: 500; cursor: pointer; }
+  .task-title:hover { color: var(--primary); text-decoration: underline; }
+  .task.is-done .task-title { color: var(--ink-soft); text-decoration: line-through; }
+  .task-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; color: var(--ink-soft); align-items: center; }
+  .task-right { display: flex; gap: 4px; align-items: center; }
+  .task-right select { width: auto; font-size: 13px; padding: 5px 8px; }
+  .chip { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--bg); font-family: 'IBM Plex Mono', monospace; }
+  .chip.overdue { background: var(--blocked-bg); color: var(--blocked); }
+  .chip.soon { background: var(--progress-bg); color: var(--progress); }
+  .chip.high { background: var(--brick); color: #fff; }
+  .chip.low { background: var(--todo-bg); color: var(--todo); }
+  .s-todo { color: var(--todo); } .s-progress { color: var(--progress); } .s-pending { color: var(--blocked); } .s-done { color: var(--done); }
+  .empty { padding: 22px; text-align: center; color: var(--ink-soft); font-size: 14px; }
 
-  /* Badges */
-  .badge {
-    display: inline-block; font-size: 10px; font-weight: 600;
-    padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em;
-  }
-  .badge.todo { background: var(--todo-bg); color: var(--todo); }
-  .badge.progress { background: var(--progress-bg); color: var(--progress); }
-  .badge.done { background: var(--done-bg); color: var(--done); }
-  .badge.blocked { background: var(--blocked-bg); color: var(--blocked); }
-  .badge.perm-admin { background: var(--primary-soft); color: var(--primary); }
-  .badge.perm-staff { background: var(--progress-bg); color: var(--progress); }
+  /* ---------- CALENDAR ---------- */
+  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .cal-head h3 { margin: 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-wd { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); text-align: center; padding: 4px 0; }
+  .cal-day { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-height: 88px; padding: 6px; font-size: 12px; overflow: hidden; }
+  .cal-day.other { opacity: .45; }
+  .cal-day.today { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  .cal-day.sun .cal-num { color: var(--brick); }
+  .cal-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; margin-bottom: 4px; }
+  .cal-task { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; background: var(--todo-bg); }
+  .cal-task.progress { background: var(--progress-bg); }
+  .cal-task.pending { background: var(--blocked-bg); }
+  .cal-task.done { background: var(--done-bg); text-decoration: line-through; color: var(--ink-soft); }
 
-  /* Timeline */
-  .timeline-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; overflow-x: auto; }
-  .timeline-header { display: flex; margin-bottom: 4px; }
-  .timeline-row-label { width: 150px; flex-shrink: 0; }
-  .timeline-days { display: flex; flex: 1; min-width: 620px; }
-  .day-cell {
-    flex: 1; text-align: center; font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; color: var(--ink-soft); padding-bottom: 8px; border-bottom: 1px solid var(--line);
-  }
-  .day-cell.weekend { color: var(--brick); }
-  .timeline-row { display: flex; align-items: center; min-height: 46px; border-bottom: 1px solid var(--line); }
-  .timeline-row:last-child { border-bottom: none; }
-  .tl-person { width: 150px; flex-shrink: 0; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .tl-track { position: relative; flex: 1; min-width: 620px; height: 28px; }
-  .tl-bar {
-    position: absolute; height: 22px; top: 3px; border-radius: 6px;
-    font-size: 10px; color: #fff; display: flex; align-items: center; padding: 0 8px;
-    font-family: 'IBM Plex Mono', monospace; white-space: nowrap; overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0,0,0,.12);
-  }
+  /* ---------- LOG ---------- */
+  .log-item { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .log-item:first-child { border-top: none; }
+  .log-when { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  .log-task { font-size: 12px; color: var(--primary); cursor: pointer; }
+  .log-body { white-space: pre-wrap; margin-top: 3px; font-size: 14px; }
 
-  /* Task table */
-  .task-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-  .task-table th {
-    text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 0.06em; color: var(--ink-soft); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--bg);
-  }
-  .task-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
-  .task-table tr:last-child td { border-bottom: none; }
-  .task-table tr:hover td { background: #FBFAF7; }
-  .duration { font-family: 'IBM Plex Mono', monospace; font-weight: 500; }
-  select.status-select, select.perm-select {
-    font-family: 'Inter', sans-serif; font-size: 12px; border: 1px solid var(--line); border-radius: 6px;
-    padding: 4px 6px; background: var(--surface); color: var(--ink);
-  }
-  .del-btn { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; }
-  .del-btn:hover { color: var(--blocked); }
+  /* ---------- MODAL ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(28,43,40,.5); display: none; align-items: flex-start; justify-content: center; z-index: 50; padding: 40px 16px; overflow-y: auto; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; padding: 24px; width: 100%; max-width: 560px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  .modal h2 { margin: 0 0 16px; font-size: 20px; }
+  .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .modal-actions .right { display: flex; gap: 8px; margin-left: auto; }
+  .detail-notes { white-space: pre-wrap; font-size: 14px; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+  .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
 
-  /* Form */
-  .add-panel {
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 18px; margin-bottom: 20px; display: none;
-  }
-  .add-panel.open { display: block; }
-  .add-panel h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 14px; font-size: 15px; }
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
-  .field label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
-  .field input, .field select {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-    font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink);
-  }
-  .field input:disabled, .field select:disabled { opacity: .55; cursor: not-allowed; }
-  .btn {
-    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px;
-    padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; transition: opacity .15s;
-  }
-  .btn:hover { opacity: 0.85; }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-  .btn-brick { background: var(--brick); color: #fff; }
-  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
-  .toolbar h2 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0; }
-  .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-soft); font-size: 13px; }
-  .locked-badge { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
-  [data-admin-only] { display: none; }
-  body.role-admin [data-admin-only] { display: inline-flex; }
-  body.role-admin button[data-admin-only],
-  body.role-admin .tab-btn[data-admin-only] { display: inline-block; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; max-width: calc(100% - 32px); }
+  .toast.show { display: block; }
 
-  /* Compare view */
-  .compare-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
-  .compare-panel h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 16px; font-size: 15px; }
-  .cmp-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .cmp-name { width: 130px; flex-shrink: 0; font-size: 13px; font-weight: 600; }
-  .cmp-bar-track { flex: 1; height: 18px; background: var(--bg); border-radius: 5px; overflow: hidden; }
-  .cmp-bar-fill { height: 100%; background: var(--primary); border-radius: 5px 0 0 5px; transition: width .3s; }
-  .cmp-bar-fill.alt { background: var(--brick); }
-  .cmp-value { width: 60px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); flex-shrink: 0; }
-
-  /* Daily log */
-  .log-entry-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; }
-  .log-entry-box h3 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 4px; font-size: 15px; }
-  .log-entry-box .sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 12px; }
-  .log-entry-box textarea {
-    width: 100%; min-height: 90px; border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink);
-    resize: vertical; margin-bottom: 10px;
+  @media (max-width: 720px) {
+    .app { padding: 20px 16px 60px; }
+    header h1 { font-size: 28px; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .row2 { grid-template-columns: 1fr; }
+    .filters input, .filters select { min-width: 0; flex: 1 1 130px; }
+    .task { grid-template-columns: 1fr; }
+    .cal-day { min-height: 60px; padding: 4px; }
+    .cal-task { font-size: 10px; padding: 1px 3px; }
   }
-  .log-saved-note { font-size: 11px; color: var(--primary); font-family: 'IBM Plex Mono', monospace; margin-left: 10px; }
-  .log-list { display: flex; flex-direction: column; gap: 10px; }
-  .log-item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
-  .log-item .log-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-  .log-item .log-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--brick); font-weight: 500; }
-  .log-item .log-who { font-size: 12px; font-weight: 600; }
-  .log-item .log-text { font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
-  .log-task-tag {
-    display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 6px;
-    background: var(--primary-soft); color: var(--primary); margin-bottom: 6px; cursor: pointer;
-  }
-  .log-task-tag:hover { background: var(--primary); color: #fff; }
-  .log-filter { margin-bottom: 14px; }
-  .log-filter select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); }
-
-  /* Topic group rows in task table */
-  tr.topic-row td {
-    background: var(--primary-soft); cursor: pointer; user-select: none;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px;
-    padding: 10px 14px; border-bottom: 1px solid var(--line);
-  }
-  tr.topic-row:hover td { background: #DCEAE5; }
-  .topic-toggle { display: inline-block; width: 14px; color: var(--primary); }
-  .topic-meta { font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 10px; }
-  .topic-progress-track { display: inline-block; width: 70px; height: 5px; background: #fff; border-radius: 3px; overflow: hidden; vertical-align: middle; margin-left: 8px; }
-  .topic-progress-fill { height: 100%; background: var(--primary); }
-  tr.subtask-row td:first-child { padding-left: 32px; color: var(--ink-soft); }
-  tr.subtask-row td:first-child::before { content: '↳ '; color: var(--line); }
-  tr.subtask-row.collapsed { display: none; }
-  .topic-del-btn { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 13px; float: right; }
-  .topic-del-btn:hover { color: var(--blocked); }
-
-  /* Calendar */
-  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .cal-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; }
-  .cal-nav { display: flex; gap: 6px; align-items: center; }
-  .cal-nav-btn {
-    width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface);
-    cursor: pointer; font-size: 14px; color: var(--ink); display: flex; align-items: center; justify-content: center;
-  }
-  .cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
-  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
-  .cal-weekday { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-  .cal-cell {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-    padding: 6px; min-height: 76px; cursor: pointer; transition: all .12s;
-  }
-  .cal-cell:hover { border-color: var(--primary); }
-  .cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
-  .cal-cell.today { border-color: var(--brick); border-width: 2px; }
-  .cal-cell.selected { background: var(--primary-soft); border-color: var(--primary); }
-  .cal-daynum { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
-  .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
-  .cal-dot {
-    width: 18px; height: 18px; border-radius: 50%; color: #fff;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 500;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .cal-dot.free-hint { background: var(--done); }
-  .cal-overflow { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-soft); align-self: center; }
-  .cal-detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-top: 18px; }
-  .cal-detail h3 { font-family: 'Space Grotesk', sans-serif; font-size: 15px; margin: 0 0 4px; }
-  .cal-detail .cal-detail-sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 16px; }
-  .cal-detail-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .cal-detail-col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 0 0 10px; }
-  .cal-person-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
-  .cal-person-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .cal-person-info .name { font-size: 13px; font-weight: 600; }
-  .cal-person-info .task-note { font-size: 11px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cal-assign-btn { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 6px; border: none; background: var(--primary); color: #fff; cursor: pointer; flex-shrink: 0; }
-  .cal-assign-btn:hover { opacity: .85; }
-  /* Availability */
-  .avail-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: -4px 0 14px; font-size: 12px; color: var(--ink-soft); }
-  .lv { display: inline-flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
-  .lv::before { content: ''; width: 14px; height: 14px; border-radius: 4px; }
-  .lv.free::before { background: var(--done); }
-  .lv.light::before { background: var(--done-bg); border: 1px solid #BFDCC9; }
-  .lv.busy::before { background: var(--progress-bg); border: 1px solid #EBCB91; }
-  .lv.full::before { background: var(--blocked-bg); border: 1px solid #EDB8B3; }
-  .avail-how { flex-basis: 100%; font-size: 11px; }
-  .avail-scroll { overflow-x: auto; }
-  .avail-table { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 680px; }
-  .avail-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: var(--ink-soft); text-align: center; padding: 0 0 2px; white-space: nowrap; }
-  .avail-table th.today { color: var(--brick); }
-  .avail-table td.who { font-size: 13px; font-weight: 600; white-space: nowrap; padding-right: 8px; position: sticky; left: 0; z-index: 1; background: var(--surface); }
-  .avail-table td.who .avatar { display: inline-flex; width: 24px; height: 24px; font-size: 10px; vertical-align: middle; margin-right: 8px; }
-  .avail-cell { height: 32px; min-width: 46px; border-radius: 6px; border: 1px solid transparent; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; }
-  .avail-cell.free { background: var(--done); color: #fff; font-weight: 600; }
-  .avail-cell.light { background: var(--done-bg); color: var(--done); border-color: #BFDCC9; font-weight: 600; }
-  .avail-cell.busy { background: var(--progress-bg); color: var(--progress); }
-  .avail-cell.full { background: var(--blocked-bg); color: var(--blocked); }
-  .avail-cell.sel { outline: 1.5px solid rgba(28,43,40,.55); outline-offset: 1px; }
-  .avail-cell:hover { filter: brightness(.96); }
-  .cal-cell.past, .cal-cell.weekend-day { opacity: .5; }
-  .cal-dot.free { background: var(--done); }
-  .cal-dot.light { background: #8CC3A0; }
-  .cal-free-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--done); margin-top: 3px; }
-  .cal-grid-note { font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
-  .avail-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; }
-  .avail-row .info { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  .avail-row .name { font-size: 13px; font-weight: 600; }
-  .avail-row .note { font-size: 11px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
-  .avail-row .note .late { color: var(--blocked); }
-  .avail-row .right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .lv-pill { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
-  .lv-pill.free { background: var(--done); color: #fff; }
-  .lv-pill.light { background: var(--done-bg); color: var(--done); }
-  .lv-pill.busy { background: var(--progress-bg); color: var(--progress); }
-  .lv-pill.full { background: var(--blocked-bg); color: var(--blocked); }
-  @media (max-width: 640px) {
-    .cal-detail-cols { grid-template-columns: 1fr; }
-    .cal-cell { min-height: 56px; }
-  }
-
-  /* Data & Excel tab (added) */
-  .data-note { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0 0 10px; max-width: 760px; }
-  .data-note b { color: var(--ink); }
-  .data-addr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .data-addr code { font-family: 'IBM Plex Mono', monospace; font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }
-  .data-addr .btn { padding: 5px 12px; }
-
-  /* Added for the web version */
-  .role-bar .btn-ghost { color: #fff; border-color: rgba(255,255,255,.3); }
-  .role-actions { display: flex; gap: 8px; }
-  .list-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
-  .list-controls label { display: block; font-size: 11px; color: var(--ink-soft); margin-bottom: 4px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: .05em; }
-  .list-controls select { padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; background: var(--surface); color: var(--ink); font-family: 'Inter', sans-serif; }
-  .list-controls .count { font-size: 12px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; padding-bottom: 8px; }
-  .toolbar-note { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); font-weight: 400; margin-left: 10px; }
-  .log-month { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; margin: 14px 0 2px; color: var(--ink); }
-  .log-month span { font-family: 'IBM Plex Mono', monospace; font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 8px; }
-  .pw-note { font-size: 13px; color: var(--ink-soft); margin: -6px 0 16px; line-height: 1.5; }
-  .modal-card .field { margin-bottom: 12px; }
-  .wrap-range { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; min-width: 210px; text-align: center; }
-  .wrap-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
-  .wrap-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
-  .wrap-stat .num { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 500; display: block; color: var(--primary); }
-  .wrap-stat .lbl { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .08em; font-family: 'IBM Plex Mono', monospace; }
-  .wrap-member { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
-  .wrap-member-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-  .wrap-member-head .counts { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
-  .wrap-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-  .wrap-col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin: 0 0 8px; }
-  .wrap-item { background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12.5px; line-height: 1.45; }
-  .wrap-item .meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-soft); display: block; margin-top: 2px; }
-  .wrap-item ul { margin: 4px 0 0; padding-left: 16px; color: var(--ink-soft); }
-  .wrap-quiet { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
-  @media (max-width: 640px) { .role-bar { flex-wrap: wrap; gap: 8px; } }
-  .login-step[hidden] { display: none; }
-  .login-card .btn-ghost { color: var(--ink); }
-  .toast-box { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: calc(100vw - 32px); }
-  .toast { background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
-  .toast a { color: #cde9e2; }
-  .data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .data-actions .btn { text-decoration: none; }
-  [hidden] { display: none !important; }
-  .login-switch { margin-top: 14px; font-size: 12px; color: var(--ink-soft); text-align: center; }
-  .login-switch a { color: var(--primary); cursor: pointer; font-weight: 600; }
-  .badge.appr { background: #EDE7F6; color: #5E35B1; }
-  .badge.appr.rej { background: var(--blocked-bg); color: var(--blocked); }
-  .tab-count { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 6px; border-radius: 9px; background: var(--brick); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
-  .tab-btn.active .tab-count { background: #fff; color: var(--ink); }
-  .group-head { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
-  .group-head .member-name { font-size: 14px; }
-  .group-head .count-pill { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
-  .item-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
-  .item-row .meta { font-size: 11px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; margin-top: 3px; }
-  .item-row .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  .item-row .btn { padding: 6px 12px; }
-  .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; margin: 22px 0 10px; }
-  .member-counts { display: flex; gap: 6px; flex-wrap: wrap; margin: -6px 0 10px; }
 </style>
 </head>
-<body>
+<body class="locked">
 
-<!-- ---------- LOGIN OVERLAY ---------- -->
-<div class="login-overlay" id="loginOverlay">
-  <div class="login-card loading" id="loginCard">
-    <p class="login-eyebrow">Team Tracker · Login</p>
-    <h2>Sign in</h2>
-    <div class="field">
-      <label for="loginUsername">Username</label>
-      <input id="loginUsername" placeholder="e.g. tran" autocomplete="username" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
-    </div>
+<!-- LOGIN -->
+<div class="login-overlay">
+  <form class="login-card" id="loginForm" onsubmit="submitLogin(event)">
+    <p class="eyebrow">Private</p>
+    <h2>My Tracker</h2>
     <div class="field">
       <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
+      <input type="password" id="loginPassword" autocomplete="current-password" required autofocus>
     </div>
-    <div class="login-error" id="loginError"></div>
-    <button class="btn btn-primary" id="loginBtn" style="width:100%" onclick="submitLogin()">Sign in</button>
-    <div class="login-hint">Forgot your password? Ask your Manager to reset it.</div>
-    <div class="login-loading-note" id="loginLoadingNote">Connecting…</div>
-  </div>
+    <button class="btn btn-block" id="loginBtn" type="submit">Unlock</button>
+    <p class="login-error" id="loginError"></p>
+  </form>
 </div>
 
 <div class="app">
-
   <header>
     <div>
-      <p class="brand-eyebrow">Team Ops · Log 001</p>
-      <h1>Team Tracker</h1>
+      <p class="eyebrow">Personal · Tasks</p>
+      <h1>My Tracker</h1>
     </div>
-    <div class="header-stats">
-      <div class="stat"><span class="num" id="statMembers">0</span><span class="lbl">Members</span></div>
-      <div class="stat"><span class="num" id="statActive">0</span><span class="lbl">Active tasks</span></div>
-      <div class="stat st-todo"><span class="num" id="statTodo">0</span><span class="lbl">Not started</span></div>
-      <div class="stat st-progress"><span class="num" id="statProgress">0</span><span class="lbl">In progress</span></div>
-      <div class="stat st-blocked"><span class="num" id="statPending">0</span><span class="lbl">Pending</span></div>
-      <div class="stat st-done"><span class="num" id="statDone">0</span><span class="lbl" id="statDoneLbl">Done</span></div>
-    </div>
-  </header>
-
-  <div class="role-bar">
-    <div class="who">
-      <span>Signed in:</span>
-      <span class="role-pill admin" id="rolePill">Manager</span>
-      <span id="roleUserName"></span>
-      <span class="storage-indicator ok" id="storageIndicator">☁ Synced</span>
-    </div>
-    <div class="role-actions">
+    <div class="header-actions">
+      <span class="sync" id="sync">☁ Saved</span>
+      <button class="btn" onclick="openTaskForm()">+ New task</button>
       <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
     </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><span class="num" id="statOpen">0</span><span class="lbl">Open</span></div>
+    <div class="stat st-progress"><span class="num" id="statProgress">0</span><span class="lbl">In progress</span></div>
+    <div class="stat st-pending"><span class="num" id="statPending">0</span><span class="lbl">Pending</span></div>
+    <div class="stat st-overdue"><span class="num" id="statOverdue">0</span><span class="lbl">Overdue</span></div>
+    <div class="stat st-done"><span class="num" id="statDone">0</span><span class="lbl">Done this month</span></div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" data-view="dashboard">Dashboard</button>
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" data-view="today">Today</button>
+    <button class="tab-btn" data-view="tasks">All tasks</button>
     <button class="tab-btn" data-view="calendar">Calendar</button>
-    <button class="tab-btn" data-view="tasks">Task List</button>
-    <button class="tab-btn" data-view="pending">Pending<span class="tab-count" id="pendingCount" hidden></span></button>
-    <button class="tab-btn" data-view="compare">Compare</button>
-    <button class="tab-btn" data-view="log">Daily Log</button>
-    <button class="tab-btn" data-view="wrapup">Weekly Wrap-up</button>
-    <button class="tab-btn" data-view="team" data-admin-only>Members &amp; Accounts</button>
-    <button class="tab-btn" data-view="data" data-admin-only>Data &amp; Excel</button>
+    <button class="tab-btn" data-view="log">Log</button>
   </div>
 
-  <!-- DASHBOARD -->
-  <div class="view active" id="view-dashboard">
-    <div class="toolbar"><h2>Who's working on what<span class="toolbar-note">A → Z · Not started, then In progress · Pending tasks are in the Pending tab</span></h2></div>
-    <div class="member-grid" id="dashboardGrid"></div>
+  <!-- TODAY -->
+  <div class="view active" id="view-today"></div>
+
+  <!-- ALL TASKS -->
+  <div class="view" id="view-tasks">
+    <div class="toolbar">
+      <div class="filters">
+        <input type="search" id="fSearch" placeholder="Search…" oninput="renderTasks()">
+        <select id="fStatus" onchange="renderTasks()">
+          <option value="open">Not done</option>
+          <option value="all">All statuses</option>
+          <option value="todo">Not started</option>
+          <option value="progress">In progress</option>
+          <option value="pending">Pending</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="fTopic" onchange="renderTasks()"></select>
+        <select id="fSort" onchange="renderTasks()">
+          <option value="due">Sort: deadline</option>
+          <option value="priority">Sort: priority</option>
+          <option value="updated">Sort: last updated</option>
+          <option value="created">Sort: newest</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost" onclick="exportCsv()">⬇ CSV</button>
+    </div>
+    <div id="taskList"></div>
   </div>
 
   <!-- CALENDAR -->
   <div class="view" id="view-calendar">
-    <div class="toolbar"><h2>Team Availability Calendar<span class="toolbar-note">Who is free to take new tasks</span></h2></div>
-    <div class="avail-legend">
-      <span class="lv free">Free: 0 tasks</span>
-      <span class="lv light">Light: 1–2</span>
-      <span class="lv busy">Busy: 3–5</span>
-      <span class="lv full">Full: 6+</span>
-      <span class="avail-how">Counts Not started and In progress tasks planned for that day, plus overdue tasks that are not finished yet. Pending tasks are not counted.</span>
-    </div>
-    <div class="timeline-wrap">
-      <div class="cal-header"><div class="cal-title">Next 2 weeks</div><span class="toolbar-note">Click a day to see who can take work</span></div>
-      <div class="avail-scroll"><table class="avail-table" id="availTable"></table></div>
-    </div>
-    <div class="timeline-wrap" style="margin-top:18px">
-      <div class="cal-header">
-        <div class="cal-title" id="calTitle"></div>
-        <div class="cal-nav">
-          <button class="cal-nav-btn" onclick="calendarPrevMonth()" aria-label="Previous month">‹</button>
-          <button class="btn btn-ghost" onclick="calendarToday()">Today</button>
-          <button class="cal-nav-btn" onclick="calendarNextMonth()" aria-label="Next month">›</button>
-        </div>
+    <div class="cal-head">
+      <h3 id="calTitle"></h3>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" onclick="calShift(-1)" aria-label="Previous month">‹</button>
+        <button class="btn btn-ghost" onclick="calShift(0)">Today</button>
+        <button class="btn btn-ghost" onclick="calShift(1)" aria-label="Next month">›</button>
       </div>
-      <div class="cal-weekdays">
-        <div class="cal-weekday">Mon</div><div class="cal-weekday">Tue</div><div class="cal-weekday">Wed</div>
-        <div class="cal-weekday">Thu</div><div class="cal-weekday">Fri</div><div class="cal-weekday">Sat</div>
-        <div class="cal-weekday">Sun</div>
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div class="cal-grid-note">Each day shows the people who are free or have a light load.</div>
     </div>
-    <div class="cal-detail" id="calDetail"></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).</p>
   </div>
 
-  <!-- TASKS -->
-  <div class="view" id="view-tasks">
-    <div class="toolbar">
-      <h2>All Tasks (by Topic)</h2>
-      <div class="toolbar-actions">
-        <button class="btn btn-brick" data-admin-only onclick="exportExcel()">⬇ Export Excel</button>
-        <button class="btn btn-brick" data-admin-only onclick="exportCSV()">⬇ Export Summary (CSV)</button>
-        <button class="btn btn-brick" data-admin-only onclick="openWeekReportPanel()">📅 Weekly Update Report</button>
-        <button class="btn btn-ghost" data-admin-only onclick="togglePanel('topicPanel')">+ Add Topic</button>
-        <button class="btn btn-primary" id="addTaskBtn" onclick="openAddTaskPanel()">+ Add Subtask</button>
-      </div>
-    </div>
-    <div class="list-controls">
-      <div><label for="taskSort">Sort inside each topic</label>
-        <select id="taskSort" onchange="saveListPrefs(); renderTasks()">
-          <option value="start">Start date</option>
-          <option value="status">Status</option>
-          <option value="due">Due date</option>
-          <option value="name">Assignee (A → Z)</option>
-        </select></div>
-      <div><label for="taskStatusFilter">Status</label>
-        <select id="taskStatusFilter" onchange="saveListPrefs(); renderTasks()">
-          <option value="all">All statuses</option>
-          <option value="todo">Not started</option>
-          <option value="progress">In progress</option>
-          <option value="blocked">Pending</option>
-          <option value="done">Done</option>
-        </select></div>
-      <div><label for="taskAssigneeFilter">Assignee</label>
-        <select id="taskAssigneeFilter" onchange="saveListPrefs(); renderTasks()"><option value="all">Everyone</option></select></div>
-      <div><label for="taskYearFilter">Done tasks</label>
-        <select id="taskYearFilter" onchange="saveListPrefs(); renderTasks()"></select></div>
-      <span class="count" id="taskCountNote"></span>
-    </div>
-    <div class="add-panel" id="weekReportPanel">
-      <h3>Weekly Update Report</h3>
-      <div class="form-grid">
-        <div class="field">
-          <label>Pick any day in the week you want</label>
-          <input id="weekPickDate" type="date" oninput="updateWeekRangePreview()">
-        </div>
-      </div>
-      <div class="sub" id="weekRangePreview" style="margin-bottom:12px;color:var(--ink-soft);font-size:12px;font-family:'IBM Plex Mono',monospace;"></div>
-      <button class="btn btn-primary" onclick="exportWeeklyReport()">⬇ Export This Week (CSV)</button>
-      <button class="btn btn-ghost" onclick="togglePanel('weekReportPanel')">Cancel</button>
-    </div>
-    <div class="add-panel" id="topicPanel">
-      <h3>New Topic</h3>
-      <div class="form-grid">
-        <div class="field"><label>Topic name</label><input id="topicName" placeholder="e.g. Media Fill Test"></div>
-      </div>
-      <button class="btn btn-primary" onclick="addTopic()">Save Topic</button>
-      <button class="btn btn-ghost" onclick="togglePanel('topicPanel')">Cancel</button>
-    </div>
-    <div class="add-panel" id="taskPanel">
-      <h3 id="taskPanelTitle">New Subtask</h3>
-      <div class="form-grid">
-        <div class="field"><label>Topic</label><select id="tTopic"></select></div>
-        <div class="field"><label>Subtask name</label><input id="tTitle" placeholder="e.g. Prepare document"></div>
-        <div class="field"><label>Assignee</label><select id="tAssignee"></select></div>
-        <div class="field"><label>Support (optional)</label><input id="tSupport" placeholder="e.g. Giang"></div>
-        <div class="field"><label id="tStartLabel">Start date</label><input id="tStart" type="date"></div>
-        <div class="field"><label>Due date</label><input id="tEnd" type="date"></div>
-        <div class="field"><label>Status</label>
-          <select id="tStatus">
-            <option value="todo">Not started</option>
-            <option value="progress" selected>In progress</option>
-            <option value="done">Done</option>
-            <option value="blocked">Pending</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary" id="taskSaveBtn" onclick="saveTask()">Save Subtask</button>
-      <button class="btn btn-ghost" onclick="closeTaskPanel()">Cancel</button>
-    </div>
-    <table class="task-table" id="taskTable">
-      <thead>
-        <tr>
-          <th>Task</th><th>Assignee</th><th>Start</th><th>Due date</th>
-          <th>Duration (busy days)</th><th>Status</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="taskTbody"></tbody>
-    </table>
-  </div>
-
-  <!-- PENDING -->
-  <div class="view" id="view-pending">
-    <div class="toolbar">
-      <h2>Pending tasks<span class="toolbar-note">Not counted on the Dashboard</span></h2>
-      <div class="list-controls" style="margin:0">
-        <div><label for="pendingFilter">Member</label><select id="pendingFilter" onchange="renderPending()"></select></div>
-        <span class="count" id="pendingNote"></span>
-      </div>
-    </div>
-    <div id="pendingBody"></div>
-  </div>
-
-  <!-- COMPARE -->
-  <div class="view" id="view-compare">
-    <div class="toolbar"><h2>Workload Comparison<span class="toolbar-note">Members A → Z</span></h2></div>
-    <div class="compare-panel">
-      <h3>Active tasks (Not started + In progress)</h3>
-      <div id="cmpTaskCount"></div>
-    </div>
-    <div class="compare-panel">
-      <h3>Total busy days (active tasks)</h3>
-      <div id="cmpBusyDays"></div>
-    </div>
-    <div class="compare-panel">
-      <h3>Summary Table</h3>
-      <table class="task-table">
-        <thead><tr><th>Member</th><th>Not started</th><th>In progress</th><th>Pending</th><th id="cmpDoneHead">Done</th><th>Busy days (active)</th><th>Avg days/task (done)</th></tr></thead>
-        <tbody id="cmpTable"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- DAILY LOG -->
+  <!-- LOG -->
   <div class="view" id="view-log">
+    <div class="card" style="padding:14px;margin-bottom:16px">
+      <div class="field">
+        <label for="logTask">Related task</label>
+        <select id="logTask"></select>
+      </div>
+      <div class="field">
+        <label for="logBody">What did you do / note</label>
+        <textarea id="logBody" placeholder="Write a note…"></textarea>
+      </div>
+      <button class="btn" onclick="addLog()">Add to log</button>
+    </div>
     <div class="toolbar">
-      <h2>Daily Work Log</h2>
-      <button class="btn btn-brick" onclick="exportUpdateLog()" title="Every task update and daily log entry for the member, year and month selected below">⬇ Download update log (Excel)</button>
+      <h2>History</h2>
+      <select id="logMonth" onchange="renderLog()" style="width:auto"></select>
     </div>
-
-    <div class="log-entry-box" id="logEntryBox">
-      <h3>What did you work on today?</h3>
-      <div class="sub" id="logDateLabel"></div>
-      <div class="field" style="margin-bottom:10px;">
-        <label>Which task is this update for?</label>
-        <select id="logTaskSelect">
-          <option value="">General note (not tied to a specific task)</option>
-        </select>
-      </div>
-      <textarea id="logText" placeholder="e.g. Today I finished the protocol for this task..."></textarea>
-      <button class="btn btn-primary" onclick="saveDailyLog()">Add Log Entry</button>
-      <span class="log-saved-note" id="logSavedNote"></span>
-    </div>
-
-    <div class="list-controls">
-      <div data-admin-only><label for="logFilterMember">Member</label>
-        <select id="logFilterMember" onchange="renderLogList()">
-          <option value="all">All members</option>
-        </select></div>
-      <div><label for="logFilterYear">Year</label>
-        <select id="logFilterYear" onchange="renderLogList()"><option value="all">All years</option></select></div>
-      <div><label for="logFilterMonth">Month</label>
-        <select id="logFilterMonth" onchange="renderLogList()">
-          <option value="all">All months</option>
-          <option value="01">January</option><option value="02">February</option><option value="03">March</option>
-          <option value="04">April</option><option value="05">May</option><option value="06">June</option>
-          <option value="07">July</option><option value="08">August</option><option value="09">September</option>
-          <option value="10">October</option><option value="11">November</option><option value="12">December</option>
-        </select></div>
-      <div><label for="logSort">Order</label>
-        <select id="logSort" onchange="renderLogList()">
-          <option value="desc">Newest first</option>
-          <option value="asc">Oldest first</option>
-        </select></div>
-      <span class="count" id="logCountNote"></span>
-    </div>
-
-    <div class="log-list" id="logList"></div>
+    <div class="card" id="logList"></div>
   </div>
-
-  <!-- WEEKLY WRAP-UP -->
-  <div class="view" id="view-wrapup">
-    <div class="toolbar">
-      <h2>Weekly Wrap-up</h2>
-      <div class="toolbar-actions" style="align-items:center">
-        <button class="cal-nav-btn" onclick="wrapupShift(-7)" aria-label="Previous week">‹</button>
-        <div class="wrap-range" id="wrapupRange"></div>
-        <button class="cal-nav-btn" onclick="wrapupShift(7)" aria-label="Next week">›</button>
-        <button class="btn btn-ghost" onclick="wrapupThisWeek()">This week</button>
-        <button class="btn btn-brick" data-admin-only onclick="exportWrapup()">⬇ Export wrap-up (Excel)</button>
-      </div>
-    </div>
-    <div id="wrapupBody"><div class="empty-state">Loading…</div></div>
-  </div>
-
-  <!-- TEAM & ACCOUNTS (admin only) -->
-  <div class="view" id="view-team">
-    <div class="toolbar">
-      <h2>Members &amp; Accounts</h2>
-      <button class="btn btn-primary" onclick="openAddMemberPanel()">+ Add Member</button>
-    </div>
-    <div class="add-panel" id="memberPanel">
-      <h3 id="memberPanelTitle">New Member (creates their own account)</h3>
-      <div class="avatar-picker-row">
-        <div class="avatar-preview" id="avatarPreview">?</div>
-        <div class="avatar-picker-fields">
-          <div class="field">
-            <label>Icon (emoji, optional)</label>
-            <input id="mAvatar" type="text" maxlength="4" placeholder="e.g. 🧪" oninput="updateAvatarPreview()">
-            <div class="emoji-swatches">
-              <div class="emoji-swatch" onclick="pickEmoji('🧪')">🧪</div>
-              <div class="emoji-swatch" onclick="pickEmoji('🔬')">🔬</div>
-              <div class="emoji-swatch" onclick="pickEmoji('📋')">📋</div>
-              <div class="emoji-swatch" onclick="pickEmoji('✅')">✅</div>
-              <div class="emoji-swatch" onclick="pickEmoji('⚗️')">⚗️</div>
-              <div class="emoji-swatch" onclick="pickEmoji('🧬')">🧬</div>
-              <div class="emoji-swatch" onclick="pickEmoji('👩')">👩</div>
-              <div class="emoji-swatch" onclick="pickEmoji('👨')">👨</div>
-              <div class="emoji-swatch" onclick="pickEmoji('')" title="Clear (use initials)">✕</div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Avatar color</label>
-            <input id="mAvatarColor" type="color" value="#2F6F62" oninput="updateAvatarPreview()">
-          </div>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div class="field"><label>Full name</label><input id="mName" placeholder="e.g. John Smith" oninput="updateAvatarPreview()"></div>
-        <div class="field"><label>Job title</label><input id="mRole" placeholder="e.g. QA Officer"></div>
-        <div class="field"><label>Username (for sign-in, default password 123456)</label><input id="mUsername" placeholder="e.g. khanh.duyen" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label>Account permission</label>
-          <select id="mPermission">
-            <option value="staff" selected>Staff (can only update own tasks)</option>
-            <option value="admin">Manager (full access)</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary" id="memberSaveBtn" onclick="saveMember()">Save Member</button>
-      <button class="btn btn-ghost" onclick="closeMemberPanel()">Cancel</button>
-    </div>
-    <table class="task-table">
-      <thead><tr><th>Name</th><th>Job title</th><th>Username</th><th>Permission</th><th>Active tasks</th><th></th></tr></thead>
-      <tbody id="memberTbody"></tbody>
-    </table>
-    <div class="compare-panel" style="margin-top:20px">
-      <h3>Manager accounts that are not team members</h3>
-      <p class="data-note">For people who need full access but do not have tasks (for example your own boss). They are not shown on the Dashboard.</p>
-      <div id="managerAccounts"></div>
-      <button class="btn btn-ghost" style="margin-top:8px" onclick="addManagerAccount()">+ Add Manager account</button>
-    </div>
-  </div>
-
-  <!-- DATA & EXCEL (admin only, added) -->
-  <div class="view" id="view-data">
-    <div class="toolbar"><h2>Data &amp; Excel</h2></div>
-    <div id="dataViewBody"><div class="empty-state">Loading…</div></div>
-  </div>
-
 </div>
 
-<!-- CHANGE PASSWORD MODAL -->
-<div class="modal-overlay" id="passwordOverlay" onclick="if(event.target===this && !passwordForced) closePasswordModal()">
-  <div class="modal-card" style="max-width:420px">
-    <button class="modal-close-btn" id="passwordCloseBtn" onclick="closePasswordModal()">✕</button>
-    <p class="modal-eyebrow">Account</p>
+<!-- TASK FORM -->
+<div class="overlay" id="taskFormOverlay" onclick="if(event.target===this)closeOverlay('taskFormOverlay')">
+  <form class="modal" onsubmit="saveTaskForm(event)">
+    <h2 id="taskFormTitle">New task</h2>
+    <input type="hidden" id="tId">
+    <div class="field"><label for="tTitle">Title</label><input id="tTitle" required maxlength="300"></div>
+    <div class="row2">
+      <div class="field"><label for="tTopic">Topic / project</label><input id="tTopic" list="topicList" maxlength="100"><datalist id="topicList"></datalist></div>
+      <div class="field"><label for="tPriority">Priority</label>
+        <select id="tPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="tStart">Start</label><input type="date" id="tStart"></div>
+      <div class="field"><label for="tDue">Deadline</label><input type="date" id="tDue"></div>
+    </div>
+    <div class="field"><label for="tStatus">Status</label>
+      <select id="tStatus"><option value="todo">Not started</option><option value="progress">In progress</option><option value="pending">Pending</option><option value="done">Done</option></select></div>
+    <div class="field"><label for="tNotes">Notes</label><textarea id="tNotes" rows="4"></textarea></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-danger" id="tDelete" onclick="deleteTaskFromForm()">Delete</button>
+      <div class="right">
+        <button type="button" class="btn btn-ghost" onclick="closeOverlay('taskFormOverlay')">Cancel</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- TASK DETAIL -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeOverlay('detailOverlay')">
+  <div class="modal" id="detailBody"></div>
+</div>
+
+<!-- PASSWORD -->
+<div class="overlay" id="pwOverlay">
+  <form class="modal" style="max-width:400px" onsubmit="submitPassword(event)">
     <h2>Change password</h2>
-    <p class="pw-note" id="passwordNote"></p>
-    <div class="field"><label for="pwCurrent">Current password</label><input id="pwCurrent" type="password" autocomplete="current-password"></div>
-    <div class="field"><label for="pwNew">New password (at least 6 characters)</label><input id="pwNew" type="password" autocomplete="new-password"></div>
-    <div class="field"><label for="pwRepeat">Repeat new password</label><input id="pwRepeat" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitPasswordChange()"></div>
-    <div class="login-error" id="pwError"></div>
-    <button class="btn btn-primary" id="pwSaveBtn" onclick="submitPasswordChange()">Save new password</button>
-  </div>
-</div>
-
-<!-- TASK DETAIL MODAL -->
-<div class="modal-overlay" id="taskDetailOverlay" onclick="if(event.target===this) closeTaskDetail()">
-  <div class="modal-card">
-    <button class="modal-close-btn" onclick="closeTaskDetail()">✕</button>
-    <p class="modal-eyebrow" id="taskDetailTopic"></p>
-    <h2 id="taskDetailTitle"></h2>
-    <div class="modal-meta-row" id="taskDetailMeta"></div>
-    <div class="data-actions" id="taskDetailActions" style="margin:-6px 0 14px"></div>
-
-    <div class="modal-section-title">Updates</div>
-    <div id="taskDetailUpdates"></div>
-
-    <div class="update-add-box" id="taskDetailAddBox">
-      <textarea id="taskUpdateText" placeholder="What's the latest on this task?"></textarea>
-      <button class="btn btn-primary" onclick="addTaskUpdate()">Add Update</button>
+    <p id="pwForcedNote" style="font-size:14px;color:var(--ink-soft);margin-top:-6px" hidden>You are using the initial password. Please set your own password to continue.</p>
+    <div class="field"><label for="pwCurrent">Current password</label><input type="password" id="pwCurrent" autocomplete="current-password" required></div>
+    <div class="field"><label for="pwNew">New password (min. 8 characters)</label><input type="password" id="pwNew" autocomplete="new-password" minlength="8" required></div>
+    <div class="field"><label for="pwNew2">Repeat new password</label><input type="password" id="pwNew2" autocomplete="new-password" minlength="8" required></div>
+    <p class="login-error" id="pwError"></p>
+    <div class="modal-actions">
+      <div class="right">
+        <button type="button" class="btn btn-ghost" id="pwCancel" onclick="closeOverlay('pwOverlay')">Cancel</button>
+        <button type="submit" class="btn">Save new password</button>
+      </div>
     </div>
-  </div>
+  </form>
 </div>
 
+<div class="toast" id="toast" role="status"></div>
 
 <script>
-// ================= STATE =================
+'use strict';
+
+const STATUS = { todo: 'Not started', progress: 'In progress', pending: 'Pending', done: 'Done' };
+const PRIORITY_RANK = { high: 0, normal: 1, low: 2 };
+let tasks = [], updates = [], today = isoLocal(new Date());
+let calView = new Date(); calView.setDate(1);
+let openDetailId = null;
+
+// ---------- helpers ----------
 function isoLocal(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function todayPlus(n){ const d = new Date(); d.setDate(d.getDate()+n); return isoLocal(d); }
+function addDays(iso, n){ const [y,m,d] = iso.split('-').map(Number); return isoLocal(new Date(y, m-1, d+n)); }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-const byName = (a, b) => String(a).localeCompare(String(b), 'vi', { sensitivity: 'base' });
-const THIS_YEAR = String(new Date().getFullYear());
+function fmtDate(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function fmtDateTime(ts){ return new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function taskById(id){ return tasks.find(t => t.id === id); }
+function isOverdue(t){ return t.status !== 'done' && t.due && t.due < today; }
+function toast(msg){ const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 3500); }
+function setSync(text, err){ const el = document.getElementById('sync'); el.textContent = text; el.classList.toggle('err', !!err); }
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); if(id === 'detailOverlay') openDetailId = null; }
+function topics(){ return [...new Set(tasks.map(t => t.topic).filter(Boolean))].sort((a,b) => a.localeCompare(b)); }
 
-let topics = [], members = [], accounts = [], tasks = [], dailyLogs = [];
-let dataVersion = 0;
-let currentAccount = null, currentRole = null, currentUserId = null;
-let calendarViewDate = new Date();
-let selectedCalendarDate = todayPlus(0);
-
-const statusMeta = {
-  todo:     { label: 'Not started', cls: 'todo',     color: '#97A0A6' },
-  progress: { label: 'In progress',  cls: 'progress', color: '#C98A26' },
-  done:     { label: 'Done',         cls: 'done',      color: '#3F8F5F' },
-  blocked:  { label: 'Pending',      cls: 'blocked',   color: '#C1473F' },
-};
-const STATUS_ORDER = { todo: 0, progress: 1, blocked: 2, done: 3 };
-
-const doneYear = (t) => (t.status === 'done' && t.doneAt ? String(t.doneAt).slice(0, 4) : null);
-const isOldDone = (t) => t.status === 'done' && doneYear(t) && doneYear(t) < THIS_YEAR;
-const memberName = (id) => { const m = members.find(x => x.id === id); return m ? m.name : '—'; };
-const sortedMembers = () => [...members].sort((a, b) => byName(a.name, b.name));
-// Task đang được theo dõi: không tính task Done của các năm trước
-const tracked = () => tasks.filter(t => !isOldDone(t));
-
-// ================= SERVER CONNECTION =================
-function captureFormValues(){
-  const values = {};
-  document.querySelectorAll('input[id], textarea[id], select[id]').forEach(el => { if(el.type !== 'file' && el.type !== 'password') values[el.id] = el.value; });
-  return values;
-}
-function restoreFormValues(values){
-  Object.entries(values).forEach(([id, v]) => {
-    const el = document.getElementById(id);
-    if(!el || el.value === v) return;
-    if(el.tagName === 'SELECT' && ![...el.options].some(o => o.value === v)) return;
-    el.value = v;
-  });
-}
-
-function applyState(st){
-  const form = captureFormValues();
-  topics = st.topics; members = st.members; accounts = st.accounts; tasks = st.tasks; dailyLogs = st.dailyLogs;
-  dataVersion = st.version;
-  currentAccount = st.me; currentRole = st.me.role; currentUserId = st.me.memberId;
-  renderAll();
-  restoreFormValues(form);
-  renderAll(); // vẽ lại sau khi khôi phục bộ lọc
-  if(document.getElementById('view-wrapup').classList.contains('active')) renderWrapup();
-  if(document.getElementById('view-data').classList.contains('active')) renderDataView();
-}
-
-function updateStorageIndicator(state, detail){
-  const el = document.getElementById('storageIndicator');
-  if(!el) return;
-  const map = { synced: ['☁ Saved', 'ok'], saving: ['⟳ Saving…', 'ok'], offline: ['⚠ Offline: retrying…', 'warn'], error: ['⚠ ' + (detail || 'Not saved'), 'warn'] };
-  const [text, cls] = map[state] || map.synced;
-  el.textContent = text;
-  el.className = 'storage-indicator ' + cls;
-}
-
-function handleApiError(e){
-  if(e.auth){ showLogin(e.message); return; }
-  updateStorageIndicator(e.offline ? 'offline' : 'synced');
-  alert(e.message);
-}
-
-// Gọi một thao tác trên máy chủ (máy chủ kiểm tra quyền), rồi tải lại dữ liệu mới nhất
-async function mutate(fn, args){
-  updateStorageIndicator('saving');
-  try {
-    await TT.rpc(fn, args);
-    applyState(await TT.loadState());
-    updateStorageIndicator('synced');
-    return true;
-  } catch(e){
-    handleApiError(e);
-    return false;
-  }
-}
-
-let refreshing = false, refreshAgain = false;
-async function refreshState(){
-  if(refreshing){ refreshAgain = true; return; }
-  refreshing = true;
-  try { applyState(await TT.loadState()); updateStorageIndicator('synced'); }
-  catch(e){ if(e.auth) showLogin(e.message); else if(e.offline) updateStorageIndicator('offline'); }
-  finally { refreshing = false; if(refreshAgain){ refreshAgain = false; refreshState(); } }
-}
-
-function startLive(){
-  TT.live(v => { if(!v || v > dataVersion) refreshState(); }, status => {
-    if(status === 'AUTH') showLogin('Your session has ended. Please sign in again.');
-    else if(status === 'OFFLINE') updateStorageIndicator('offline');
-  });
-}
-document.addEventListener('visibilitychange', () => { if(!document.hidden && currentAccount) refreshState(); });
-
-// ================= SIGN IN =================
-function showLogin(message){
-  currentAccount = null; currentRole = null; currentUserId = null;
-  TT.stopLive();
-  closeTaskDetail();
-  document.getElementById('passwordOverlay').classList.remove('open');
-  document.getElementById('loginCard').classList.remove('loading');
-  document.getElementById('loginOverlay').style.display = 'flex';
-  document.body.classList.remove('role-admin', 'role-staff');
-  document.getElementById('loginError').textContent = message || '';
-}
-
-async function afterLogin(){
+// ---------- data ----------
+async function refresh(){
   const st = await TT.loadState();
-  document.getElementById('loginOverlay').style.display = 'none';
-  applyState(st);
-  startLive();
-  if(st.me.mustChangePassword) openPasswordModal(true);
-  if(st.me.role === 'admin') setTimeout(autoSaveFiles, 1500);
+  tasks = st.tasks || []; updates = st.updates || []; today = st.today || isoLocal(new Date());
+  renderAll();
+  return st;
+}
+function handleError(e){
+  if(e && e.auth){ showLogin(e.message); return; }
+  setSync('⚠ Not saved', true);
+  toast(e && e.message ? e.message : 'Something went wrong.');
+}
+async function mutate(fn){
+  setSync('Saving…');
+  try { const r = await fn(); await refresh(); setSync('☁ Saved'); return r === undefined ? true : r; }
+  catch(e){ handleError(e); return false; }
 }
 
-async function submitLogin(){
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const err = document.getElementById('loginError');
-  if(!username || !password){ err.textContent = 'Please enter your username and password.'; return; }
-  const btn = document.getElementById('loginBtn');
+// ---------- auth ----------
+function showLogin(msg){
+  document.body.classList.add('locked');
+  document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+  document.getElementById('loginError').textContent = msg || '';
+  document.getElementById('loginPassword').value = '';
+  setTimeout(() => document.getElementById('loginPassword').focus(), 50);
+}
+async function afterLogin(mustChange){
+  document.body.classList.remove('locked');
+  if(mustChange) openPasswordModal(true);
+}
+async function submitLogin(ev){
+  ev.preventDefault();
+  const btn = document.getElementById('loginBtn'), err = document.getElementById('loginError');
   btn.disabled = true; err.textContent = '';
   try {
-    await TT.signIn(username, password);
+    const r = await TT.signIn(document.getElementById('loginPassword').value);
     document.getElementById('loginPassword').value = '';
-    await afterLogin();
-  } catch(e){
-    err.textContent = e.message;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function doLogout(){
-  await TT.signOut();
-  showLogin('');
-}
-
-async function boot(){
-  loadListPrefs();
-  if(!TT.configured()){ showLogin('This site is not connected to Supabase yet. Open config.js and paste your Project URL and publishable key (see the guide).'); return; }
-  if(!TT.hasSession()){ showLogin(''); return; }
-  try { await afterLogin(); }
-  catch(e){ if(e.auth) await TT.signOut(); showLogin(e.auth ? '' : e.message); }
-}
-
-// ================= CHANGE PASSWORD =================
-let passwordForced = false;
-function openPasswordModal(forced){
-  passwordForced = !!forced;
-  document.getElementById('passwordNote').textContent = forced
-    ? 'You are using the default password 123456. Please choose your own password before continuing (this website is on the internet).'
-    : 'Choose a password that only you know, at least 6 characters.';
-  document.getElementById('passwordCloseBtn').style.display = forced ? 'none' : '';
-  ['pwCurrent','pwNew','pwRepeat'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('pwError').textContent = '';
-  document.getElementById('passwordOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('pwCurrent').focus(), 50);
-}
-function closePasswordModal(){ if(!passwordForced) document.getElementById('passwordOverlay').classList.remove('open'); }
-async function submitPasswordChange(){
-  const current = document.getElementById('pwCurrent').value;
-  const next = document.getElementById('pwNew').value;
-  const err = document.getElementById('pwError');
-  if(!current || !next){ err.textContent = 'Please fill in all fields.'; return; }
-  if(next.length < 6){ err.textContent = 'The new password must have at least 6 characters.'; return; }
-  if(next === '123456'){ err.textContent = 'Please choose a password other than the default 123456.'; return; }
-  if(next !== document.getElementById('pwRepeat').value){ err.textContent = 'The two new passwords do not match.'; return; }
-  if(next === current){ err.textContent = 'The new password must be different from the current one.'; return; }
-  const btn = document.getElementById('pwSaveBtn');
-  btn.disabled = true; err.textContent = '';
-  try {
-    await TT.changePassword(current, next);
-    passwordForced = false;
-    document.getElementById('passwordOverlay').classList.remove('open');
-    await refreshState();
-    toast('Your password has been changed.');
+    const st = await refresh();
+    afterLogin(r.mustChange || st.mustChange);
   } catch(e){ err.textContent = e.message; }
   finally { btn.disabled = false; }
 }
-
-// ================= SMALL HELPERS =================
-function toast(html, ms){
-  let box = document.getElementById('toastBox');
-  if(!box){ box = document.createElement('div'); box.id = 'toastBox'; box.className = 'toast-box'; box.setAttribute('role', 'status'); document.body.appendChild(box); }
-  const el = document.createElement('div');
-  el.className = 'toast'; el.innerHTML = html;
-  box.appendChild(el);
-  setTimeout(() => el.remove(), ms || 5000);
+async function doLogout(){ await TT.signOut(); tasks = []; updates = []; showLogin(); }
+function openPasswordModal(forced){
+  ['pwCurrent','pwNew','pwNew2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pwError').textContent = '';
+  document.getElementById('pwForcedNote').hidden = !forced;
+  document.getElementById('pwCancel').hidden = forced;
+  document.getElementById('pwOverlay').classList.add('open');
 }
-function saveBlob(name, blob){
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-function daysBetween(a, b){ return Math.round((new Date(b) - new Date(a)) / 86400000); }
-function initials(name){ return String(name || '').split(' ').filter(Boolean).slice(-2).map(w=>w[0]).join('').toUpperCase(); }
-function renderAvatar(m, extraStyle=''){
-  const content = (m.avatar && m.avatar.trim()) ? m.avatar.trim() : initials(m.name);
-  const color = /^#[0-9a-fA-F]{6}$/.test(m.avatarColor || '') ? m.avatarColor : '';
-  const style = color ? `background:${color};color:#fff;${extraStyle}` : extraStyle;
-  return `<div class="avatar" style="${esc(style)}">${esc(content)}</div>`;
-}
-function pickEmoji(emoji){ document.getElementById('mAvatar').value = emoji; updateAvatarPreview(); }
-function updateAvatarPreview(){
-  const preview = document.getElementById('avatarPreview');
-  const emoji = document.getElementById('mAvatar').value.trim();
-  const nameVal = document.getElementById('mName').value.trim();
-  preview.textContent = emoji || (nameVal ? initials(nameVal) : '?');
-  preview.style.background = document.getElementById('mAvatarColor').value;
-  preview.style.color = '#fff';
-}
-function fmtDate(iso){ return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit' }); }
-function fmtDateFull(iso){ return new Date(iso).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'2-digit', year:'numeric' }); }
-
-// ================= TABS =================
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('view-'+btn.dataset.view).classList.add('active');
-    if(btn.dataset.view === 'log') renderLogList();
-    if(btn.dataset.view === 'wrapup') renderWrapup();
-    if(btn.dataset.view === 'data') renderDataView();
-  });
-});
-function togglePanel(id){ document.getElementById(id).classList.toggle('open'); }
-
-// ================= TOPICS =================
-let collapsedTopics = new Set();
-async function addTopic(){
-  if(currentRole !== 'admin'){ alert('Only Managers can add topics.'); return; }
-  const name = document.getElementById('topicName').value.trim();
-  if(!name){ alert('Please enter a topic name'); return; }
-  if(await mutate('tt_topic_save', { p_id: null, p_name: name })){ document.getElementById('topicName').value = ''; togglePanel('topicPanel'); }
-}
-async function renameTopic(id){
-  const tp = topics.find(t => t.id === id);
-  const name = prompt('New name for this topic:', tp ? tp.name : '');
-  if(name && name.trim()) await mutate('tt_topic_save', { p_id: id, p_name: name.trim() });
-}
-async function removeTopic(id){
-  if(currentRole !== 'admin'){ alert('Only Managers can delete topics.'); return; }
-  const subCount = tasks.filter(t=>t.topicId===id).length;
-  if(!confirm(subCount ? `This topic has ${subCount} subtask(s). Deleting it will also delete its subtasks. Continue?` : 'Delete this topic?')) return;
-  await mutate('tt_topic_delete', { p_id: id });
-}
-function toggleTopic(id){ if(collapsedTopics.has(id)) collapsedTopics.delete(id); else collapsedTopics.add(id); renderTasks(); }
-function renderTopicSelect(){
-  const sel = document.getElementById('tTopic');
-  const prev = sel.value;
-  sel.innerHTML = topics.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  if(prev) sel.value = prev;
+async function submitPassword(ev){
+  ev.preventDefault();
+  const cur = document.getElementById('pwCurrent').value, n1 = document.getElementById('pwNew').value, n2 = document.getElementById('pwNew2').value;
+  const err = document.getElementById('pwError');
+  if(n1 !== n2){ err.textContent = 'The two new passwords do not match.'; return; }
+  try { await TT.changePassword(cur, n1); closeOverlay('pwOverlay'); toast('Password changed. Other devices have been signed out.'); }
+  catch(e){ if(e.auth) showLogin(e.message); else err.textContent = e.message; }
 }
 
-// ================= MEMBERS / ACCOUNTS =================
-let editingMemberId = null;
-function openAddMemberPanel(){
-  if(currentRole !== 'admin'){ alert('Only Managers can add members.'); return; }
-  editingMemberId = null;
-  document.getElementById('memberPanelTitle').textContent = 'New Member';
-  document.getElementById('memberSaveBtn').textContent = 'Save Member';
-  ['mName','mRole','mUsername','mAvatar'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('mPermission').value = 'staff';
-  document.getElementById('mAvatarColor').value = '#2F6F62';
-  updateAvatarPreview();
-  document.getElementById('memberPanel').classList.add('open');
+// ---------- tasks ----------
+function openTaskForm(id, preset){
+  const t = id ? taskById(id) : null;
+  document.getElementById('taskFormTitle').textContent = t ? 'Edit task' : 'New task';
+  document.getElementById('tId').value = t ? t.id : '';
+  document.getElementById('tTitle').value = t ? t.title : '';
+  document.getElementById('tTopic').value = t ? t.topic : '';
+  document.getElementById('tPriority').value = t ? t.priority : 'normal';
+  document.getElementById('tStart').value = t ? (t.start || '') : ((preset && preset.start) || '');
+  document.getElementById('tDue').value = t ? (t.due || '') : ((preset && preset.due) || '');
+  document.getElementById('tStatus').value = t ? t.status : 'todo';
+  document.getElementById('tNotes').value = t ? t.notes : '';
+  document.getElementById('tDelete').hidden = !t;
+  document.getElementById('topicList').innerHTML = topics().map(x => `<option value="${esc(x)}">`).join('');
+  closeOverlay('detailOverlay');
+  document.getElementById('taskFormOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('tTitle').focus(), 50);
 }
-function openEditMember(id){
-  const m = members.find(m=>m.id===id);
-  if(!m) return;
-  const acc = accounts.find(a=>a.memberId===id);
-  editingMemberId = id;
-  document.getElementById('memberPanelTitle').textContent = `Edit Member — ${m.name}`;
-  document.getElementById('memberSaveBtn').textContent = 'Update Member';
-  document.getElementById('mName').value = m.name;
-  document.getElementById('mRole').value = m.role;
-  document.getElementById('mUsername').value = acc ? acc.username : '';
-  document.getElementById('mPermission').value = acc ? acc.role : 'staff';
-  document.getElementById('mAvatar').value = m.avatar || '';
-  document.getElementById('mAvatarColor').value = m.avatarColor || '#2F6F62';
-  updateAvatarPreview();
-  document.getElementById('memberPanel').classList.add('open');
-}
-function closeMemberPanel(){ document.getElementById('memberPanel').classList.remove('open'); editingMemberId = null; }
-async function saveMember(){
-  const username = document.getElementById('mUsername').value.trim().toLowerCase();
-  const args = {
-    p_id: editingMemberId, p_name: document.getElementById('mName').value.trim(), p_job_title: document.getElementById('mRole').value.trim() || 'Member',
-    p_avatar: document.getElementById('mAvatar').value.trim(), p_avatar_color: document.getElementById('mAvatarColor').value,
-    p_username: username, p_role: document.getElementById('mPermission').value,
+async function saveTaskForm(ev){
+  ev.preventDefault();
+  const task = {
+    id: document.getElementById('tId').value,
+    title: document.getElementById('tTitle').value.trim(),
+    topic: document.getElementById('tTopic').value.trim(),
+    priority: document.getElementById('tPriority').value,
+    start: document.getElementById('tStart').value,
+    due: document.getElementById('tDue').value,
+    status: document.getElementById('tStatus').value,
+    notes: document.getElementById('tNotes').value
   };
-  if(!args.p_name){ alert('Please enter a member name'); return; }
-  const acc = editingMemberId ? accounts.find(a => a.memberId === editingMemberId) : null;
-  if(!username && acc && !confirm('Without a username this person can no longer sign in (their tasks are kept). Continue?')) return;
-  if(!username && !acc && !confirm('No username yet: this member will not be able to sign in until you add one. Save anyway?')) return;
-  if(await mutate('tt_member_save', args)){
-    if(username && !acc) toast(`Account created: <b>${esc(username)}</b> / password <b>123456</b>. They choose their own password at first sign-in.`, 9000);
-    closeMemberPanel();
-  }
+  if(!task.title) return;
+  if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
+  if(await mutate(() => TT.saveTask(task))) closeOverlay('taskFormOverlay');
 }
-async function removeMember(id){
-  const msg = tasks.some(t=>t.assigneeId===id)
-    ? 'This member still has tasks. Deleting them will also delete their tasks and daily logs. To keep their history, remove their username instead. Delete anyway?'
-    : 'Delete this member and their sign-in?';
-  if(confirm(msg)) await mutate('tt_member_delete', { p_id: id });
+async function deleteTaskFromForm(){
+  const id = Number(document.getElementById('tId').value);
+  const t = taskById(id);
+  if(!t || !confirm(`Delete "${t.title}" and all of its updates?`)) return;
+  if(await mutate(() => TT.deleteTask(id))) closeOverlay('taskFormOverlay');
 }
-async function changeAccountPermission(accountId, role){
-  if(!(await mutate('tt_account_role', { p_id: accountId, p_role: role }))) renderMembers();
-}
-async function resetPassword(accountId){
-  const acc = accounts.find(a => a.id === accountId);
-  if(!acc || !confirm(`Reset the password of "${acc.username}" to 123456? They will be signed out and asked to choose a new password.`)) return;
-  if(await mutate('tt_admin_reset_password', { p_account_id: accountId })) toast(`Password of <b>${esc(acc.username)}</b> is now <b>123456</b>.`, 7000);
-}
-async function addManagerAccount(){
-  const username = prompt('Username of the Manager account (not a team member), e.g. boss:');
-  if(username && username.trim() && await mutate('tt_manager_account_save', { p_id: null, p_username: username.trim().toLowerCase() }))
-    toast(`Account created: <b>${esc(username.trim().toLowerCase())}</b> / password <b>123456</b>.`, 8000);
-}
-async function removeManagerAccount(id){ if(confirm('Remove this Manager account?')) await mutate('tt_account_delete', { p_id: id }); }
+async function changeStatus(id, status){ await mutate(() => TT.setStatus(id, status)); }
 
-// ================= TASKS =================
-let editingTaskId = null;
-const ownTask = (t) => currentUserId != null && t.assigneeId === currentUserId;
-function taskCanEdit(t){ return currentRole === 'admin' || ownTask(t); }
-const taskCanDelete = taskCanEdit; // Staff xoá được task mình phụ trách
+function dueChip(t){
+  if(!t.due) return '';
+  if(t.status === 'done') return `<span class="chip">due ${fmtDate(t.due)}</span>`;
+  const diff = Math.round((new Date(t.due) - new Date(today)) / 86400000);
+  if(diff < 0) return `<span class="chip overdue">overdue ${-diff}d · ${fmtDate(t.due)}</span>`;
+  if(diff === 0) return `<span class="chip soon">due today</span>`;
+  if(diff <= 3) return `<span class="chip soon">due in ${diff}d · ${fmtDate(t.due)}</span>`;
+  return `<span class="chip">due ${fmtDate(t.due)}</span>`;
+}
+function taskRow(t){
+  const n = updates.filter(u => u.taskId === t.id).length;
+  const opts = Object.entries(STATUS).map(([k,v]) => `<option value="${k}" ${t.status===k?'selected':''}>${v}</option>`).join('');
+  return `<div class="task ${t.status==='done'?'is-done':''}">
+    <div>
+      <div class="task-title" onclick="openDetail(${t.id})">${esc(t.title)}</div>
+      <div class="task-meta">
+        ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
+        ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
+        ${dueChip(t)}
+        ${n ? `<span>💬 ${n}</span>` : ''}
+        ${t.doneAt ? `<span class="s-done">✓ ${fmtDate(t.doneAt)}</span>` : ''}
+      </div>
+    </div>
+    <div class="task-right">
+      <select class="s-${t.status}" onchange="changeStatus(${t.id}, this.value)" aria-label="Status">${opts}</select>
+      <button class="icon-btn" onclick="openTaskForm(${t.id})" title="Edit" aria-label="Edit">✎</button>
+    </div>
+  </div>`;
+}
+function section(title, list, emptyText){
+  if(!list.length && !emptyText) return '';
+  return `<div class="section"><h3>${title}<span class="count">${list.length}</span></h3>
+    <div class="card">${list.length ? list.map(taskRow).join('') : `<div class="empty">${emptyText}</div>`}</div></div>`;
+}
+function byDue(a, b){ return (a.due || '9999') .localeCompare(b.due || '9999') || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.id - b.id; }
 
-function openAddTaskPanel(){
-  const isAdmin = currentRole === 'admin';
-  if(!isAdmin){ alert('Only Managers can add new tasks.'); return; }
-  if(topics.length === 0){ alert('No topics yet. Please ask a Manager to add a Topic first.'); return; }
-  editingTaskId = null;
-  document.getElementById('taskPanelTitle').textContent = isAdmin ? 'New Subtask' : 'New Task for Me';
-  document.getElementById('taskSaveBtn').textContent = isAdmin ? 'Save Subtask' : 'Save Task';
-  document.getElementById('tStartLabel').textContent = 'Start date';
-  renderTopicSelect(); renderAssigneeSelect();
-  document.getElementById('tTitle').value = '';
-  document.getElementById('tSupport').value = '';
-  document.getElementById('tStart').value = todayPlus(0);
-  document.getElementById('tEnd').value = '';
-  document.getElementById('tStatus').value = 'progress';
-  if(!isAdmin) document.getElementById('tAssignee').value = String(currentUserId);
-  document.getElementById('tAssignee').disabled = !isAdmin;
-  document.getElementById('tTopic').disabled = false;
-  document.getElementById('tStart').disabled = false;
-  document.getElementById('taskPanel').classList.add('open');
-  document.getElementById('tTitle').focus();
-}
-function openEditTaskPanel(id){
-  const t = tasks.find(t=>t.id===id);
-  if(!t) return;
-  if(!taskCanEdit(t)){ alert('You can only edit tasks you are in charge of.'); return; }
-  const isAdmin = currentRole === 'admin';
-  const flexible = isAdmin;
-  editingTaskId = id;
-  document.getElementById('taskPanelTitle').textContent = 'Edit Subtask';
-  document.getElementById('taskSaveBtn').textContent = 'Update Subtask';
-  document.getElementById('tStartLabel').textContent = flexible ? 'Start date' : 'Start date (set by your Manager)';
-  renderTopicSelect(); renderAssigneeSelect();
-  document.getElementById('tTopic').value = String(t.topicId);
-  document.getElementById('tTitle').value = t.title;
-  document.getElementById('tAssignee').value = String(t.assigneeId);
-  document.getElementById('tSupport').value = t.support || '';
-  document.getElementById('tStart').value = t.start;
-  document.getElementById('tEnd').value = t.end;
-  document.getElementById('tStatus').value = t.status;
-  document.getElementById('tStart').disabled = !flexible;
-  document.getElementById('tTopic').disabled = !flexible;
-  document.getElementById('tAssignee').disabled = !isAdmin;
-  document.getElementById('taskPanel').classList.add('open');
-}
-function closeTaskPanel(){
-  document.getElementById('taskPanel').classList.remove('open');
-  ['tStart','tTopic','tAssignee'].forEach(id => document.getElementById(id).disabled = false);
-  editingTaskId = null;
-}
-async function saveTask(){
-  const args = {
-    p_topic_id: Number(document.getElementById('tTopic').value), p_title: document.getElementById('tTitle').value.trim(),
-    p_assignee_id: Number(document.getElementById('tAssignee').value), p_support: document.getElementById('tSupport').value.trim(),
-    p_start: document.getElementById('tStart').value, p_due: document.getElementById('tEnd').value, p_status: document.getElementById('tStatus').value,
-  };
-  if(!args.p_title || !args.p_due){ alert('Please fill in the task name and due date'); return; }
-  if(!args.p_start){ alert('Please fill in the start date'); return; }
-  if(daysBetween(args.p_start, args.p_due) < 0){ alert('Due date must be after the start date'); return; }
-  const ok = editingTaskId ? await mutate('tt_task_update', Object.assign({ p_id: editingTaskId }, args)) : await mutate('tt_task_create', args);
-  if(ok) closeTaskPanel();
-}
-async function removeTask(id){
-  const t = tasks.find(t=>t.id===id);
-  if(!t || !taskCanDelete(t)){ alert('You can only delete tasks you are in charge of.'); return; }
-  if(confirm(`Delete this task?\n\n${t.title}`)) await mutate('tt_task_delete', { p_id: id });
-}
-async function updateStatus(id, status){
-  const t = tasks.find(t=>t.id===id);
-  if(!t || !taskCanEdit(t)){ alert('You can only update tasks you are in charge of.'); renderTasks(); return; }
-  if(!(await mutate('tt_task_set_status', { p_id: id, p_status: status }))) renderTasks();
-}
-// ================= TASK DETAIL =================
-let openTaskDetailId = null;
-function taskUpdatedToday(t){ return !!(t.updates && t.updates.some(u => u.date === todayPlus(0))); }
-function openTaskDetail(id){ openTaskDetailId = id; renderTaskDetail(); document.getElementById('taskDetailOverlay').classList.add('open'); }
-function closeTaskDetail(){ document.getElementById('taskDetailOverlay').classList.remove('open'); openTaskDetailId = null; }
-// Nút Edit trong cửa sổ chi tiết: mở form sửa task (chỉ hiện với người được phép sửa)
-function editTaskFromDetail(id){
-  closeTaskDetail();
-  document.querySelector('.tab-btn[data-view="tasks"]').click();
-  openEditTaskPanel(id);
-  document.getElementById('taskPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-function renderTaskDetail(){
-  const t = tasks.find(t=>t.id===openTaskDetailId);
-  if(!t){ closeTaskDetail(); return; }
-  const tp = topics.find(tp=>tp.id===t.topicId);
-  document.getElementById('taskDetailTopic').textContent = tp ? tp.name : '';
-  document.getElementById('taskDetailTitle').textContent = t.title;
-  document.getElementById('taskDetailMeta').innerHTML = `
-    <span><b>${esc(memberName(t.assigneeId))}</b>${t.support ? ` (supported by ${esc(t.support)})` : ''}</span>
-    <span>${fmtDate(t.start)} → ${fmtDate(t.end)} · ${daysBetween(t.start, t.end)} days</span>
-    <span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span>
-    ${t.doneAt ? `<span>Done ${fmtDate(t.doneAt)}/${String(t.doneAt).slice(0,4)}</span>` : ''}`;
-  const updates = (t.updates || []).map((u, i) => Object.assign({ i }, u)).sort((a,b) => String(b.date).localeCompare(String(a.date)) || (b.i - a.i));
-  document.getElementById('taskDetailUpdates').innerHTML = updates.length
-    ? updates.map(u => `<div class="update-item"><div class="update-head"><span class="update-date">${fmtDate(u.date)}${updTime(u.at, u.date) ? ' ' + updTime(u.at, u.date) : ''}${u.date === todayPlus(0) ? ' · Today' : ''}</span>${u.by ? `<span class="locked-badge">${esc(u.by)}</span>` : ''}</div><div class="update-text">${esc(u.text)}</div></div>`).join('')
-    : '<div class="empty-state">No updates logged yet.</div>';
-  document.getElementById('taskDetailAddBox').style.display = taskCanEdit(t) ? '' : 'none';
-  document.getElementById('taskDetailActions').innerHTML = taskCanEdit(t)
-    ? `<button class="btn btn-ghost" onclick="editTaskFromDetail(${t.id})">✎ Edit task</button>` : '';
-}
-async function addTaskUpdate(){
-  const t = tasks.find(t=>t.id===openTaskDetailId);
-  if(!t) return;
-  const text = document.getElementById('taskUpdateText').value.trim();
-  if(!text){ alert('Please enter an update'); return; }
-  document.getElementById('taskUpdateText').value = '';
-  if(!(await mutate('tt_task_add_update', { p_id: t.id, p_text: text }))) document.getElementById('taskUpdateText').value = text;
-}
-
-// ================= DAILY LOG =================
-async function saveDailyLog(){
-  if(currentUserId == null){ alert('Your account isn\'t linked to a team member, so it can\'t log daily work.'); return; }
-  const text = document.getElementById('logText').value.trim();
-  if(!text){ alert('Please enter what you worked on today'); return; }
-  const taskIdRaw = document.getElementById('logTaskSelect').value;
-  document.getElementById('logText').value = '';
-  if(await mutate('tt_log_create', { p_task_id: taskIdRaw ? Number(taskIdRaw) : null, p_text: text }))
-    document.getElementById('logSavedNote').textContent = 'Saved at ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
-  else document.getElementById('logText').value = text;
-}
-function renderLogYears(){
-  const sel = document.getElementById('logFilterYear');
-  const prev = sel.value;
-  const years = new Set(dailyLogs.map(l => String(l.date || '').slice(0,4)).filter(Boolean));
-  years.add(THIS_YEAR);
-  sel.innerHTML = '<option value="all">All years</option>' + [...years].sort().reverse().map(y => `<option value="${y}">${y}</option>`).join('');
-  sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'all';
-}
-function renderLogList(){
-  const listEl = document.getElementById('logList');
-  let entries = [...dailyLogs];
-  if(currentRole !== 'admin') entries = entries.filter(l => l.memberId === currentUserId);
-  else { const f = document.getElementById('logFilterMember').value; if(f !== 'all') entries = entries.filter(l => l.memberId === Number(f)); }
-  const year = document.getElementById('logFilterYear').value, month = document.getElementById('logFilterMonth').value;
-  if(year !== 'all') entries = entries.filter(l => String(l.date).slice(0,4) === year);
-  if(month !== 'all') entries = entries.filter(l => String(l.date).slice(5,7) === month);
-  const asc = document.getElementById('logSort').value === 'asc';
-  entries.sort((a,b) => (asc ? 1 : -1) * (String(a.date).localeCompare(String(b.date)) || (a.id - b.id)));
-  document.getElementById('logCountNote').textContent = `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`;
-  if(!entries.length){ listEl.innerHTML = '<div class="empty-state">No log entries for this selection.</div>'; return; }
-  const monthName = (ym) => new Date(Number(ym.slice(0,4)), Number(ym.slice(5,7)) - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  const perMonth = entries.reduce((acc, l) => { const k = String(l.date).slice(0,7); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
-  let lastMonth = '';
-  listEl.innerHTML = entries.map(l => {
-    const ym = String(l.date).slice(0,7);
-    const header = ym !== lastMonth ? `<div class="log-month">${monthName(ym)}<span>${perMonth[ym]} entr${perMonth[ym] === 1 ? 'y' : 'ies'}</span></div>` : '';
-    lastMonth = ym;
-    const t = l.taskId ? tasks.find(t=>t.id===l.taskId) : null;
-    const tp = t ? topics.find(tp=>tp.id===t.topicId) : null;
-    const tag = t ? `<div class="log-task-tag" onclick="openTaskDetail(${t.id})">${esc(tp ? tp.name + ' › ' : '')}${esc(t.title)}</div>` : '';
-    return `${header}<div class="log-item"><div class="log-head"><span class="log-who">${esc(memberName(l.memberId))}</span><span class="log-date">${fmtDate(l.date)}${updTime(l.at, l.date) ? ' ' + updTime(l.at, l.date) : ''}</span></div>${tag}<div class="log-text">${esc(l.text)}</div></div>`;
-  }).join('');
-}
-
-// ================= WEEKLY WRAP-UP =================
-let wrapupDate = todayPlus(0);
-function weekRange(dateIso){
-  const [y, m, d] = dateIso.split('-').map(Number);
-  const day = new Date(y, m - 1, d);
-  const monday = new Date(y, m - 1, d - ((day.getDay() + 6) % 7));
-  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
-  return { start: isoLocal(monday), end: isoLocal(sunday) };
-}
-function computeWrapup(dateIso){
-  const { start, end } = weekRange(dateIso);
-  const inWeek = (d) => d && d >= start && d <= end;
-  const tname = (id) => { const t = topics.find(x => x.id === id); return t ? t.name : '—'; };
-  const slim = (t) => ({ id: t.id, title: t.title, topic: tname(t.topicId), status: t.status, doneAt: t.doneAt, createdAt: t.createdAt });
-  const weekUpdates = (t) => (t.updates || []).filter(u => inWeek(u.date));
-  const scope = sortedMembers().filter(m => currentRole === 'admin' || m.id === currentUserId);
-  const list = scope.map(m => {
-    const mine = tasks.filter(t => t.assigneeId === m.id);
-    const doneWeek = (t) => t.status === 'done' && inWeek(t.doneAt);
-    const done = mine.filter(doneWeek).map(t => Object.assign(slim(t), { updates: weekUpdates(t) }));
-    const created = tasks.filter(t => t.assigneeId === m.id && inWeek(t.createdAt)).map(slim);
-    const workedOn = mine.filter(t => !doneWeek(t)).map(t => ({ task: slim(t), updates: weekUpdates(t) })).filter(x => x.updates.length);
-    const logs = dailyLogs.filter(l => l.memberId === m.id && inWeek(l.date)).sort((a,b) => String(a.date).localeCompare(String(b.date)))
-      .map(l => ({ date: l.date, text: l.text, taskTitle: l.taskId && tasks.find(t => t.id === l.taskId) ? tasks.find(t => t.id === l.taskId).title : null }));
-    const current = { todo: 0, progress: 0, blocked: 0, done: 0 };
-    mine.filter(t => !isOldDone(t)).forEach(t => current[t.status]++);
-    const updates = mine.reduce((s, t) => s + weekUpdates(t).length, 0);
-    return { member: m, done, created, workedOn, logs, current, counts: { done: done.length, created: created.length, workedOn: workedOn.length, updates, logs: logs.length } };
-  });
-  const totals = { done: 0, created: 0, workedOn: 0, updates: 0, logs: 0 }, current = { todo: 0, progress: 0, blocked: 0, done: 0 };
-  list.forEach(m => { Object.keys(totals).forEach(k => totals[k] += m.counts[k]); Object.keys(current).forEach(k => current[k] += m.current[k]); });
-  return { start, end, members: list, totals, current };
-}
-function wrapupShift(days){ const [y, m, d] = wrapupDate.split('-').map(Number); wrapupDate = isoLocal(new Date(y, m - 1, d + days)); renderWrapup(); }
-function wrapupThisWeek(){ wrapupDate = todayPlus(0); renderWrapup(); }
-function exportWrapup(){ const w = computeWrapup(wrapupDate); saveBlob(`Weekly-wrap-up_${w.start}_to_${w.end}.xlsx`, TTXlsx.buildWrapupReport(w)); }
-function renderWrapup(){
-  const w = computeWrapup(wrapupDate);
-  const f = (iso) => `${iso.slice(8,10)}/${iso.slice(5,7)}`;
-  document.getElementById('wrapupRange').textContent = `${f(w.start)} – ${f(w.end)}/${w.end.slice(0,4)}`;
-  const stat = (n, l, color) => `<div class="wrap-stat"><span class="num" style="${color ? 'color:' + color : ''}">${n}</span><span class="lbl">${l}</span></div>`;
-  let html = `<div class="wrap-stats">${stat(w.totals.done, 'Done this week', 'var(--done)')}${stat(w.totals.created, 'New tasks')}${stat(w.totals.workedOn, 'Tasks worked on')}${stat(w.totals.updates, 'Updates')}${stat(w.totals.logs, 'Daily log entries')}${stat(w.current.todo, 'Not started now', 'var(--todo)')}${stat(w.current.progress, 'In progress now', 'var(--progress)')}${stat(w.current.blocked, 'Pending now', 'var(--blocked)')}</div>`;
-  const active = w.members.filter(m => m.counts.done + m.counts.created + m.counts.workedOn + m.counts.logs > 0);
-  const quiet = w.members.filter(m => !active.includes(m));
-  const line = (t, extra) => `<div class="wrap-item">${esc(t.title)}<span class="meta">${esc(t.topic)}${extra ? ' · ' + extra : ''}</span></div>`;
-  html += active.map(m => {
-    const cols = [];
-    if(m.done.length) cols.push(`<div class="wrap-col"><h4>Done (${m.done.length})</h4>${m.done.map(t => line(t, 'done ' + f(t.doneAt))).join('')}</div>`);
-    if(m.workedOn.length) cols.push(`<div class="wrap-col"><h4>Worked on (${m.workedOn.length})</h4>${m.workedOn.map(x => `<div class="wrap-item">${esc(x.task.title)}<span class="meta">${esc(x.task.topic)} · ${statusMeta[x.task.status].label}</span><ul>${x.updates.map(u => `<li>${f(u.date)}: ${esc(u.text)}</li>`).join('')}</ul></div>`).join('')}</div>`);
-    if(m.created.length) cols.push(`<div class="wrap-col"><h4>New tasks (${m.created.length})</h4>${m.created.map(t => line(t, statusMeta[t.status].label)).join('')}</div>`);
-    if(m.logs.length) cols.push(`<div class="wrap-col"><h4>Daily log (${m.logs.length})</h4>${m.logs.map(l => `<div class="wrap-item">${esc(l.text)}<span class="meta">${f(l.date)}${l.taskTitle ? ' · ' + esc(l.taskTitle) : ''}</span></div>`).join('')}</div>`);
-    return `<div class="wrap-member"><div class="wrap-member-head">${renderAvatar(m.member)}<div><div class="member-name">${esc(m.member.name)}</div><div class="member-role">${esc(m.member.role)}</div></div>
-      <div class="counts"><span class="badge done">${m.counts.done} done</span><span class="badge todo">${m.current.todo} not started</span><span class="badge progress">${m.current.progress} in progress</span><span class="badge blocked">${m.current.blocked} pending</span></div></div>
-      <div class="wrap-cols">${cols.join('')}</div></div>`;
-  }).join('');
-  if(!active.length) html += '<div class="empty-state">No activity recorded for this week yet.</div>';
-  if(quiet.length && active.length) html += `<div class="wrap-quiet">No activity this week: ${quiet.map(m => esc(m.member.name)).join(', ')}</div>`;
-  document.getElementById('wrapupBody').innerHTML = html;
-}
-
-// ================= EXPORTS =================
-const stamp = () => { const d = new Date(); return `${isoLocal(d)}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`; };
-const fullState = () => ({ topics, members, tasks, dailyLogs });
-function exportExcel(){
-  if(currentRole !== 'admin'){ alert('Only Managers can export files.'); return; }
-  saveBlob(`Team-Tracker_${stamp()}.xlsx`, TTXlsx.buildReport({ data: fullState(), tasks, includeLogs: true, title: 'Team Tracker report' }));
-}
-function exportOpenTasks(){ saveBlob(`Open-tasks_${stamp()}.xlsx`, TTXlsx.buildOpenTasks(fullState())); }
-function exportDoneYear(year){ saveBlob(`Done-tasks-${year}.xlsx`, TTXlsx.buildDoneByYear(fullState(), year)); }
-
-// Giờ của một update (chỉ hiện khi đúng ngày; dữ liệu nhập từ bản cũ không có giờ)
-function updTime(at, date){
-  if(!at) return '';
-  const d = new Date(at);
-  if(isNaN(d) || isoLocal(d) !== date) return '';
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
-// Nhật ký update theo bộ lọc của tab Daily Log (người, năm, tháng)
-function updateLogRows(){
-  const year = document.getElementById('logFilterYear').value, month = document.getElementById('logFilterMonth').value;
-  const inPeriod = (d) => (year === 'all' || String(d).slice(0,4) === year) && (month === 'all' || String(d).slice(5,7) === month);
-  let whoId = currentRole === 'admin' ? document.getElementById('logFilterMember').value : String(currentUserId);
-  whoId = whoId === 'all' ? null : Number(whoId);
-  const whoName = whoId == null ? null : memberName(whoId);
-  const rows = [];
-  let seq = 0;
-  tasks.forEach(t => {
-    const tp = topics.find(x => x.id === t.topicId);
-    (t.updates || []).forEach(u => {
-      seq++;
-      if(!inPeriod(u.date) || (whoName && u.by !== whoName)) return;
-      const fromLog = dailyLogs.some(l => l.taskId === t.id && l.date === u.date && l.text === u.text);
-      rows.push({ seq, date: u.date, time: updTime(u.at, u.date), ts: updTime(u.at, u.date) ? u.at : '', task: t.title, topic: tp ? tp.name : '—', pic: memberName(t.assigneeId),
-        status: statusMeta[t.status].label, statusKey: t.status, text: u.text, by: u.by || '',
-        type: /^Status changed:/.test(u.text) ? 'Status change' : /^Deadline changed:/.test(u.text) ? 'Deadline change' : fromLog ? 'Daily log' : 'Update' });
-    });
-  });
-  // Nhật ký chung (không gắn task). Nhật ký gắn task đã nằm trong phần update của task đó.
-  dailyLogs.filter(l => !l.taskId).forEach(l => {
-    seq++;
-    if(!inPeriod(l.date) || (whoId != null && l.memberId !== whoId)) return;
-    rows.push({ seq, date: l.date, time: updTime(l.at, l.date), ts: updTime(l.at, l.date) ? l.at : '', task: '(General note)', topic: '', pic: memberName(l.memberId), status: '', text: l.text, by: memberName(l.memberId), type: 'Daily log (general)' });
-  });
-  const monthName = month === 'all' ? '' : new Date(2000, Number(month) - 1, 1).toLocaleDateString('en-GB', { month: 'long' }) + ' ';
-  const period = year === 'all' && month === 'all' ? 'All time' : `${monthName}${year === 'all' ? '(every year)' : year}`;
-  return { rows, subtitle: `${whoName || 'Everyone'} · ${period}`, file: `Update-log_${(whoName || 'everyone').replace(/[^A-Za-z0-9]+/g, '-')}_${year === 'all' ? 'all' : year}${month === 'all' ? '' : '-' + month}.xlsx` };
-}
-function exportUpdateLog(){
-  const r = updateLogRows();
-  if(!r.rows.length){ alert('No updates for this selection. Change the member, year or month filter and try again.'); return; }
-  saveBlob(r.file, TTXlsx.buildUpdateLog({ title: 'Update log', subtitle: r.subtitle, rows: r.rows }));
-}
-function downloadCsv(rows, name){
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
-  saveBlob(name, new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }));
-}
-function exportCSV(){
-  if(currentRole !== 'admin'){ alert('Only Managers can export files.'); return; }
-  const rows = [['Topic','Member','Supported by','Job title','Subtask','Start date','Due date','Busy days','Status','Done date']];
-  [...tasks].sort((a,b) => (a.topicId - b.topicId) || byName(memberName(a.assigneeId), memberName(b.assigneeId)) || String(a.start).localeCompare(String(b.start))).forEach(t => {
-    const m = members.find(m=>m.id===t.assigneeId), tp = topics.find(tp=>tp.id===t.topicId);
-    rows.push([tp ? tp.name : '—', m ? m.name : '—', t.support || '', m ? m.role : '', t.title, t.start, t.end, String(daysBetween(t.start,t.end)), statusMeta[t.status].label, t.doneAt || '']);
-  });
-  downloadCsv(rows, `bao-cao-task-nhom_${todayPlus(0)}.csv`);
-}
-function openWeekReportPanel(){ document.getElementById('weekPickDate').value = todayPlus(0); updateWeekRangePreview(); document.getElementById('weekReportPanel').classList.add('open'); }
-function updateWeekRangePreview(){ const r = weekRange(document.getElementById('weekPickDate').value || todayPlus(0)); document.getElementById('weekRangePreview').textContent = `Week: ${fmtDate(r.start)} → ${fmtDate(r.end)} (Mon–Sun)`; }
-function exportWeeklyReport(){
-  const { start, end } = weekRange(document.getElementById('weekPickDate').value || todayPlus(0));
-  const rows = [['Week', 'Topic', 'Member', 'Task', 'Update Date', 'Update', 'Current Status']];
-  tasks.forEach(t => (t.updates || []).filter(u => u.date >= start && u.date <= end).sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(u => {
-    const tp = topics.find(tp=>tp.id===t.topicId);
-    rows.push([`${start} to ${end}`, tp ? tp.name : '—', memberName(t.assigneeId), t.title, u.date, u.text, statusMeta[t.status].label]);
-  }));
-  if(rows.length === 1){ alert(`No task updates found for the week of ${fmtDate(start)} → ${fmtDate(end)}.`); return; }
-  downloadCsv(rows, `weekly-update-report_${start}_to_${end}.csv`);
-  togglePanel('weekReportPanel');
-}
-
-// ================= CALENDAR =================
-function calendarPrevMonth(){ calendarViewDate.setMonth(calendarViewDate.getMonth()-1); renderCalendar(); }
-function calendarNextMonth(){ calendarViewDate.setMonth(calendarViewDate.getMonth()+1); renderCalendar(); }
-function calendarToday(){ calendarViewDate = new Date(); selectedCalendarDate = todayPlus(0); renderCalendar(); }
-// Mức bận: task Not started / In progress có lịch trong ngày, cộng task quá hạn chưa xong (vẫn chiếm thời gian).
-// Pending không tính (giống Dashboard).
-const LOAD_LEVELS = [
-  { max: 0, key: 'free', label: 'Free' },
-  { max: 2, key: 'light', label: 'Light' },
-  { max: 5, key: 'busy', label: 'Busy' },
-  { max: Infinity, key: 'full', label: 'Full' },
-];
-const loadLevel = (n) => LOAD_LEVELS.find(l => n <= l.max);
-const isWeekend = (iso) => { const d = new Date(iso + 'T00:00:00'); return d.getDay() === 0 || d.getDay() === 6; };
-function occupyingTasks(memberId, dateIso){
-  const today = todayPlus(0);
-  return tasks.filter(t => t.assigneeId === memberId && (t.status === 'todo' || t.status === 'progress')
-    && ((t.start <= dateIso && dateIso <= t.end) || (t.end < today && dateIso >= today && t.start <= dateIso)));
-}
-function availabilityFor(dateIso){
-  const today = todayPlus(0);
-  return sortedMembers().map(m => {
-    const list = occupyingTasks(m.id, dateIso);
-    return { member: m, tasks: list, load: list.length, overdue: list.filter(t => t.end < today).length, level: loadLevel(list.length) };
-  });
-}
-function workdaysFrom(startIso, count){
-  const out = []; const d = new Date(startIso + 'T00:00:00');
-  while(out.length < count){ const iso = isoLocal(d); if(!isWeekend(iso)) out.push(iso); d.setDate(d.getDate() + 1); }
-  return out;
-}
-
-function selectCalendarDay(dateIso){
-  selectedCalendarDate = dateIso;
-  calendarViewDate = new Date(dateIso + 'T00:00:00');
-  renderCalendar();
-}
-function pickAvailCell(dateIso){
-  selectCalendarDay(dateIso);
-  document.getElementById('calDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-function openCalendarAssign(memberId, dateIso){
-  if(currentRole !== 'admin') return;
-  document.querySelector('.tab-btn[data-view="tasks"]').click();
-  openAddTaskPanel();
-  document.getElementById('tAssignee').value = String(memberId);
-  document.getElementById('tStart').value = dateIso;
-  document.getElementById('tEnd').value = dateIso;
-}
-
-// Bảng 2 tuần tới: mỗi người một hàng, mỗi ngày làm việc một ô
-function renderAvailTable(){
-  const today = todayPlus(0);
-  const days = workdaysFrom(today, 10);
-  const head = `<tr><th></th>${days.map(d => { const dt = new Date(d + 'T00:00:00');
-    return `<th class="${d === today ? 'today' : ''}">${dt.toLocaleDateString('en-GB', { weekday: 'short' })}<br>${fmtDate(d)}</th>`; }).join('')}</tr>`;
-  const perDay = days.map(d => availabilityFor(d));
-  const body = sortedMembers().map((m, i) => `<tr><td class="who">${renderAvatar(m)}${esc(m.name)}</td>${days.map((d, j) => {
-    const a = perDay[j][i];
-    const tip = `${m.name}, ${fmtDate(d)}: ${a.level.label} (${a.load} task${a.load === 1 ? '' : 's'}${a.overdue ? `, ${a.overdue} overdue` : ''})`;
-    return `<td class="avail-cell ${a.level.key}${d === selectedCalendarDate ? ' sel' : ''}" title="${esc(tip)}" onclick="pickAvailCell('${d}')">${a.load}</td>`;
-  }).join('')}</tr>`).join('');
-  document.getElementById('availTable').innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
-}
-
-function renderCalendar(){
-  const y = calendarViewDate.getFullYear(), mo = calendarViewDate.getMonth();
-  document.getElementById('calTitle').textContent = `${['January','February','March','April','May','June','July','August','September','October','November','December'][mo]} ${y}`;
-  let lead = new Date(y, mo, 1).getDay() - 1; if(lead < 0) lead = 6;
-  const days = new Date(y, mo+1, 0).getDate(), todayIso = todayPlus(0);
-  let html = '';
-  for(let i=0;i<lead;i++) html += `<div class="cal-cell empty"></div>`;
-  for(let d=1; d<=days; d++){
-    const dateIso = isoLocal(new Date(y, mo, d));
-    const past = dateIso < todayIso, weekend = isWeekend(dateIso);
-    let inner = '';
-    if(!past && !weekend){
-      const open = availabilityFor(dateIso).filter(a => a.level.key === 'free' || a.level.key === 'light').sort((a, b) => a.load - b.load);
-      inner = open.slice(0, 5).map(a => `<div class="cal-dot ${a.level.key}" title="${esc(a.member.name)}: ${a.level.label} (${a.load})">${esc(initials(a.member.name))}</div>`).join('')
-        + (open.length > 5 ? `<span class="cal-overflow">+${open.length - 5}</span>` : '');
-      inner = `<div class="cal-dots">${inner}</div>${open.length ? `<div class="cal-free-count">${open.length} can take work</div>` : ''}`;
-    }
-    html += `<div class="cal-cell${dateIso===todayIso?' today':''}${dateIso===selectedCalendarDate?' selected':''}${past ? ' past' : ''}${weekend ? ' weekend-day' : ''}" onclick="selectCalendarDay('${dateIso}')"><div class="cal-daynum">${d}</div>${inner}</div>`;
-  }
-  document.getElementById('calGrid').innerHTML = html;
-  renderAvailTable();
-
-  // Chi tiết ngày đã chọn: ai có thể nhận task mới (rảnh nhất trước)
-  const all = availabilityFor(selectedCalendarDate).sort((a, b) => a.load - b.load || byName(a.member.name, b.member.name));
-  const open = all.filter(a => a.level.key === 'free' || a.level.key === 'light');
-  const busy = all.filter(a => !open.includes(a));
-  const count = (k) => all.filter(a => a.level.key === k).length;
-  const row = (a, canAssign) => {
-    const first = a.tasks[0];
-    const note = a.load
-      ? `Working on: ${esc(first.title)}${a.load > 1 ? ` (+${a.load - 1} more)` : ''}${a.overdue ? ` · <span class="late">${a.overdue} overdue</span>` : ''}`
-      : 'Nothing planned';
-    const assign = canAssign && currentRole === 'admin' ? `<button class="cal-assign-btn" onclick="openCalendarAssign(${a.member.id}, '${selectedCalendarDate}')">+ Assign</button>` : '';
-    return `<div class="avail-row"><div class="info">${renderAvatar(a.member, 'width:28px;height:28px;font-size:11px')}<div style="min-width:0"><div class="name">${esc(a.member.name)}</div><div class="note">${note}</div></div></div>
-      <div class="right"><span class="lv-pill ${a.level.key}">${a.level.label} · ${a.load}</span>${assign}</div></div>`;
-  };
-  const weekendNote = isWeekend(selectedCalendarDate) ? ' · weekend' : '';
-  document.getElementById('calDetail').innerHTML = `<h3>${fmtDateFull(selectedCalendarDate)}</h3>
-    <div class="cal-detail-sub">${count('free')} free · ${count('light')} light · ${count('busy')} busy · ${count('full')} full${weekendNote}</div>
-    <div class="cal-detail-cols">
-      <div class="cal-detail-col"><h4>Can take new tasks</h4>${open.length ? open.map(a => row(a, true)).join('') : '<div class="empty-state">Nobody is free or light this day</div>'}</div>
-      <div class="cal-detail-col"><h4>Busy</h4>${busy.length ? busy.map(a => row(a, false)).join('') : '<div class="empty-state">Nobody is busy this day</div>'}</div>
+// ---------- detail ----------
+function openDetail(id){ openDetailId = id; renderDetail(); document.getElementById('detailOverlay').classList.add('open'); }
+function renderDetail(){
+  const t = taskById(openDetailId);
+  if(!t){ closeOverlay('detailOverlay'); return; }
+  const list = updates.filter(u => u.taskId === t.id);
+  document.getElementById('detailBody').innerHTML = `
+    <h2>${esc(t.title)}</h2>
+    <div class="detail-meta">
+      <span class="s-${t.status}">● ${STATUS[t.status]}</span>
+      ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
+      ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
+      ${t.start ? `<span>Start ${fmtDate(t.start)}</span>` : ''}
+      ${dueChip(t)}
+    </div>
+    ${t.notes ? `<div class="detail-notes">${esc(t.notes)}</div>` : ''}
+    <div class="field"><label for="dUpdate">Add an update</label><textarea id="dUpdate" placeholder="What's the latest on this task?"></textarea></div>
+    <button class="btn" onclick="addDetailUpdate()">Add update</button>
+    <h3 style="font-size:15px;margin:20px 0 6px">History</h3>
+    <div class="card">${list.length ? list.map(logItem).join('') : '<div class="empty">No updates yet.</div>'}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="openTaskForm(${t.id})">✎ Edit task</button>
+      <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('detailOverlay')">Close</button></div>
     </div>`;
 }
-
-// ================= RENDER =================
-function renderRoleBar(){
-  const pill = document.getElementById('rolePill'), nameEl = document.getElementById('roleUserName');
-  if(currentRole === 'admin'){
-    pill.textContent = 'Manager'; pill.className = 'role-pill admin';
-    nameEl.textContent = `(${currentAccount.username}) — full access`;
-    document.body.classList.remove('role-staff'); document.body.classList.add('role-admin');
-  } else {
-    pill.textContent = 'Staff'; pill.className = 'role-pill staff';
-    nameEl.textContent = `— ${memberName(currentUserId)} (${currentAccount.username})`;
-    document.body.classList.remove('role-admin'); document.body.classList.add('role-staff');
-  }
-  document.querySelectorAll('[data-admin-only]').forEach(el => { el.style.display = currentRole === 'admin' ? '' : 'none'; });
-  const addBtn = document.getElementById('addTaskBtn');
-  // Chỉ Manager được thêm task mới
-  addBtn.style.display = currentRole === 'admin' ? '' : 'none';
-  addBtn.textContent = '+ Add Subtask';
-  const active = document.querySelector('.tab-btn.active');
-  if(active && active.hasAttribute('data-admin-only') && currentRole !== 'admin') document.querySelector('.tab-btn[data-view="dashboard"]').click();
+async function addDetailUpdate(){
+  const body = document.getElementById('dUpdate').value.trim();
+  if(!body) return;
+  await mutate(() => TT.addUpdate(openDetailId, body));
 }
 
+// ---------- log ----------
+function logItem(u){
+  const t = u.taskId ? taskById(u.taskId) : null;
+  return `<div class="log-item"><div>
+      <div class="log-when">${fmtDateTime(u.at)}</div>
+      ${t && openDetailId !== t.id ? `<div class="log-task" onclick="openDetail(${t.id})">${esc(t.title)}</div>` : ''}
+      <div class="log-body">${esc(u.body)}</div>
+    </div>
+    <button class="icon-btn" onclick="deleteLog(${u.id})" title="Delete" aria-label="Delete">✕</button></div>`;
+}
+async function addLog(){
+  const body = document.getElementById('logBody').value.trim();
+  if(!body){ toast('Write something first.'); return; }
+  const taskId = Number(document.getElementById('logTask').value) || null;
+  if(await mutate(() => TT.addUpdate(taskId, body))) document.getElementById('logBody').value = '';
+}
+async function deleteLog(id){ if(confirm('Delete this entry?')) await mutate(() => TT.deleteUpdate(id)); }
+
+// ---------- render ----------
 function renderStats(){
-  const tr = tracked();
-  const c = (s) => tr.filter(t => t.status === s).length;
-  document.getElementById('statMembers').textContent = members.length;
-  document.getElementById('statActive').textContent = c('todo') + c('progress');
-  document.getElementById('statTodo').textContent = c('todo');
-  document.getElementById('statProgress').textContent = c('progress');
-  document.getElementById('statPending').textContent = c('blocked');
-  document.getElementById('statDone').textContent = c('done');
-  document.getElementById('statDoneLbl').textContent = `Done ${THIS_YEAR}`;
-  const pendingN = c('blocked');
-  const pc = document.getElementById('pendingCount'); pc.hidden = !pendingN; pc.textContent = pendingN;
+  const open = tasks.filter(t => t.status !== 'done');
+  const month = today.slice(0, 7);
+  document.getElementById('statOpen').textContent = open.length;
+  document.getElementById('statProgress').textContent = tasks.filter(t => t.status === 'progress').length;
+  document.getElementById('statPending').textContent = tasks.filter(t => t.status === 'pending').length;
+  document.getElementById('statOverdue').textContent = open.filter(isOverdue).length;
+  document.getElementById('statDone').textContent = tasks.filter(t => t.doneAt && t.doneAt.slice(0, 7) === month).length;
 }
-
-function renderAssigneeSelect(){
-  document.getElementById('tAssignee').innerHTML = sortedMembers().map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+function renderToday(){
+  const open = tasks.filter(t => t.status !== 'done');
+  const weekEnd = addDays(today, 7);
+  const overdue = open.filter(isOverdue).sort(byDue);
+  const dueSoon = open.filter(t => t.due && t.due >= today && t.due <= weekEnd).sort(byDue);
+  const shown = new Set([...overdue, ...dueSoon].map(t => t.id));
+  const doing = open.filter(t => t.status === 'progress' && !shown.has(t.id)).sort(byDue);
+  const pending = open.filter(t => t.status === 'pending' && !shown.has(t.id)).sort(byDue);
+  const doneToday = tasks.filter(t => t.doneAt === today);
+  const html = section('⚠ Overdue', overdue) + section('Due in the next 7 days', dueSoon) +
+    section('In progress', doing) + section('Pending', pending) + section('✓ Done today', doneToday);
+  document.getElementById('view-today').innerHTML = html ||
+    `<div class="card empty">Nothing urgent. <a href="#" onclick="openTaskForm();return false">Add a task</a> to get started.</div>`;
 }
-
-// Dashboard: thành viên A → Z; chỉ Not started rồi In progress (Pending ở tab riêng)
-function renderDashboard(){
-  const grid = document.getElementById('dashboardGrid');
-  if(!members.length){ grid.innerHTML = '<div class="empty-state">No members yet.</div>'; return; }
-  grid.innerHTML = sortedMembers().map(m => {
-    const active = tracked().filter(t => t.assigneeId === m.id && (t.status === 'todo' || t.status === 'progress'))
-      .sort((a,b) => (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || String(a.end).localeCompare(String(b.end)));
-    const nNot = active.filter(t => t.status === 'todo').length, nProg = active.length - nNot;
-    const list = active.length ? `<div class="member-tasks-list">${active.map(t => {
-      const tp = topics.find(tp=>tp.id===t.topicId);
-      return `<div class="member-current st-${t.status}" onclick="openTaskDetail(${t.id})" style="cursor:pointer"><div class="task-title">${esc(tp ? tp.name + ' › ' : '')}${esc(t.title)}</div>
-        <div class="task-meta">Day ${Math.max(daysBetween(t.start, todayPlus(0)),0)}/${daysBetween(t.start, t.end)} · <span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span></div></div>`;
-    }).join('')}</div>` : `<div class="no-task">No active tasks</div>`;
-    return `<div class="member-card"><div class="member-top">${renderAvatar(m)}<div><div class="member-name">${esc(m.name)}</div><div class="member-role">${esc(m.role)}</div></div></div>
-      <div class="member-counts"><span class="badge todo">${nNot} not started</span><span class="badge progress">${nProg} in progress</span></div>
-      ${list}<div class="member-load"><span>${active.length} active</span><div class="load-bar"><div class="load-fill" style="width:${Math.min(100, active.length * 10)}%"></div></div></div></div>`;
-  }).join('');
-}
-
-// Pending: phần riêng, lọc theo tên, nhóm theo người A → Z
-function renderPending(){
-  const sel = document.getElementById('pendingFilter');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="all">All members</option>' + sortedMembers().map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
-  sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'all';
-  const pend = tracked().filter(t => t.status === 'blocked' && (sel.value === 'all' || t.assigneeId === Number(sel.value)));
-  document.getElementById('pendingNote').textContent = `${pend.length} pending task${pend.length === 1 ? '' : 's'}`;
-  const since = (t) => { const u = [...(t.updates || [])].reverse().find(u => /→\s*Pending\s*$/.test(u.text)); return u ? fmtDate(u.date) : null; };
-  const groups = sortedMembers().map(m => ({ m, list: pend.filter(t => t.assigneeId === m.id).sort((a,b) => String(a.end).localeCompare(String(b.end))) })).filter(g => g.list.length);
-  document.getElementById('pendingBody').innerHTML = groups.length ? groups.map(g => `
-    <div class="group-head">${renderAvatar(g.m, 'width:28px;height:28px;font-size:11px')}<span class="member-name">${esc(g.m.name)}</span><span class="count-pill">${g.list.length} pending</span></div>
-    ${g.list.map(t => { const tp = topics.find(x => x.id === t.topicId); const s = since(t);
-      return `<div class="item-row"><div><span class="task-title-link" onclick="openTaskDetail(${t.id})">${esc(t.title)}</span>
-        <div class="meta">${esc(tp ? tp.name : '')} · due ${fmtDate(t.end)}${s ? ' · pending since ' + s : ''} · ${(t.updates || []).length} updates</div></div>
-        <div class="actions">${taskCanEdit(t) ? `<select class="status-select" onchange="updateStatus(${t.id}, this.value)">${Object.entries(statusMeta).map(([k,v]) => `<option value="${k}" ${t.status===k?'selected':''}>${v.label}</option>`).join('')}</select>` : ''}</div></div>`; }).join('')}`).join('')
-    : '<div class="empty-state">No pending tasks.</div>';
-}
-
-// Task List: bộ lọc (nhớ trên máy này)
-function saveListPrefs(){
-  try { localStorage.setItem('teamTracker:taskList', JSON.stringify({ sort: document.getElementById('taskSort').value, status: document.getElementById('taskStatusFilter').value, year: document.getElementById('taskYearFilter').value })); } catch(e){}
-}
-function loadListPrefs(){
-  try {
-    const p = JSON.parse(localStorage.getItem('teamTracker:taskList') || '{}');
-    if(p.sort) document.getElementById('taskSort').value = p.sort;
-    if(p.status) document.getElementById('taskStatusFilter').value = p.status;
-    window.__savedYearFilter = p.year;
-  } catch(e){}
-}
-function renderTaskFilters(){
-  const who = document.getElementById('taskAssigneeFilter'), prevWho = who.value;
-  who.innerHTML = '<option value="all">Everyone</option>' + (currentUserId != null ? '<option value="me">Only my tasks</option>' : '') + sortedMembers().map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
-  who.value = [...who.options].some(o => o.value === prevWho) ? prevWho : 'all';
-  const yr = document.getElementById('taskYearFilter'), prevYr = yr.value || window.__savedYearFilter || 'current';
-  const years = [...new Set(tasks.map(doneYear).filter(y => y && y < THIS_YEAR))].sort().reverse();
-  yr.innerHTML = `<option value="current">Done in ${THIS_YEAR} only</option>` + years.map(y => `<option value="${y}">Done in ${y}</option>`).join('') + '<option value="all">All years</option>';
-  yr.value = [...yr.options].some(o => o.value === prevYr) ? prevYr : 'current';
+function renderTopicFilter(){
+  const sel = document.getElementById('fTopic'), cur = sel.value;
+  sel.innerHTML = '<option value="">All topics</option>' + topics().map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('') + '<option value="__none">No topic</option>';
+  if([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 function renderTasks(){
-  const tbody = document.getElementById('taskTbody');
-  if(!topics.length){ tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">No topics/tasks yet</div></td></tr>'; return; }
-  const sortMode = document.getElementById('taskSort').value, statusFilter = document.getElementById('taskStatusFilter').value;
-  const who = document.getElementById('taskAssigneeFilter').value, yr = document.getElementById('taskYearFilter').value || 'current';
-  const yearOk = (t) => t.status !== 'done' || yr === 'all' || (yr === 'current' ? !isOldDone(t) : doneYear(t) === yr);
-  const filtering = statusFilter !== 'all' || who !== 'all' || yr !== 'current';
-  const matches = (t) => yearOk(t) && (statusFilter === 'all' || t.status === statusFilter) && (who === 'all' || (who === 'me' ? ownTask(t) : t.assigneeId === Number(who)));
-  const compare = {
-    start: (a,b) => String(a.start).localeCompare(String(b.start)) || a.id - b.id,
-    due: (a,b) => String(a.end).localeCompare(String(b.end)) || String(a.start).localeCompare(String(b.start)),
-    status: (a,b) => (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]) || byName(memberName(a.assigneeId), memberName(b.assigneeId)) || String(a.end).localeCompare(String(b.end)),
-    name: (a,b) => byName(memberName(a.assigneeId), memberName(b.assigneeId)) || (STATUS_ORDER[a.status] - STATUS_ORDER[b.status]),
-  }[sortMode] || ((a,b) => String(a.start).localeCompare(String(b.start)));
-  let html = '', shown = 0;
-  topics.forEach(tp => {
-    const all = tasks.filter(t => t.topicId === tp.id && yearOk(t));
-    const subs = all.filter(matches).sort(compare);
-    if(filtering && !subs.length) return;
-    shown += subs.length;
-    const collapsed = collapsedTopics.has(tp.id);
-    const counted = all;
-    const doneCount = counted.filter(t => t.status === 'done').length;
-    const pct = counted.length ? Math.round(doneCount / counted.length * 100) : 0;
-    const byStatus = ['todo','progress','blocked','done'].map(k => `${counted.filter(t=>t.status===k).length} ${statusMeta[k].label.toLowerCase()}`).join(' · ');
-    const adminBtns = currentRole === 'admin' ? `<button class="topic-del-btn" onclick="event.stopPropagation(); removeTopic(${tp.id})" title="Delete topic">✕</button><button class="topic-del-btn" onclick="event.stopPropagation(); renameTopic(${tp.id})" title="Rename topic" style="margin-right:8px">✎</button>` : '';
-    html += `<tr class="topic-row" onclick="toggleTopic(${tp.id})"><td colspan="7"><span class="topic-toggle">${collapsed ? '▸' : '▾'}</span>${esc(tp.name)}
-      <span class="topic-meta">${doneCount}/${counted.length} subtasks done</span><span class="topic-progress-track"><span class="topic-progress-fill" style="width:${pct}%"></span></span>${adminBtns}
-      <div class="topic-meta" style="margin:4px 0 0 24px">${byStatus}${filtering ? ` · showing ${subs.length}` : ''}</div></td></tr>`;
-    if(!subs.length) html += `<tr class="subtask-row${collapsed?' collapsed':''}"><td colspan="7" style="padding-left:32px;color:var(--ink-soft);font-style:italic;">No subtasks yet.</td></tr>`;
-    subs.forEach(t => {
-      const canEdit = taskCanEdit(t);
-      const statusCell = canEdit
-        ? `<select class="status-select" onchange="updateStatus(${t.id}, this.value)">${Object.entries(statusMeta).map(([k,v]) => `<option value="${k}" ${t.status===k?'selected':''}>${v.label}</option>`).join('')}</select>`
-        : `<span class="badge ${statusMeta[t.status].cls}">${statusMeta[t.status].label}</span>`;
-      const actions = canEdit
-        ? `<button class="del-btn" onclick="openEditTaskPanel(${t.id})" title="Edit" style="margin-right:6px">✎</button><button class="del-btn" onclick="removeTask(${t.id})" title="Delete">✕</button>`
-        : '<span class="locked-badge">🔒</span>';
-      html += `<tr class="subtask-row${collapsed?' collapsed':''}">
-        <td><span class="task-title-link" onclick="openTaskDetail(${t.id})">${esc(t.title)}</span>${taskUpdatedToday(t) ? '<span class="updated-today-badge">Updated today</span>' : ''}</td>
-        <td>${esc(memberName(t.assigneeId))}${t.support ? `<br><span style="font-size:10px;color:var(--ink-soft);font-style:italic">supported by: ${esc(t.support)}</span>` : ''}</td>
-        <td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td class="duration">${daysBetween(t.start, t.end)} days</td>
-        <td>${statusCell}</td><td style="white-space:nowrap">${actions}</td></tr>`;
-    });
-  });
-  tbody.innerHTML = html || '<tr><td colspan="7"><div class="empty-state">No tasks match these filters.</div></td></tr>';
-  document.getElementById('taskCountNote').textContent = `${shown} task${shown === 1 ? '' : 's'} shown`;
+  const q = document.getElementById('fSearch').value.trim().toLowerCase();
+  const st = document.getElementById('fStatus').value, tp = document.getElementById('fTopic').value, sort = document.getElementById('fSort').value;
+  let list = tasks.filter(t =>
+    (st === 'all' || (st === 'open' ? t.status !== 'done' : t.status === st)) &&
+    (!tp || (tp === '__none' ? !t.topic : t.topic === tp)) &&
+    (!q || (t.title + ' ' + t.notes + ' ' + t.topic).toLowerCase().includes(q)));
+  const sorters = {
+    due: byDue,
+    priority: (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || byDue(a, b),
+    updated: (a, b) => b.updatedAt.localeCompare(a.updatedAt),
+    created: (a, b) => b.id - a.id
+  };
+  list.sort(sorters[sort]);
+  const groups = new Map();
+  list.forEach(t => { const k = t.topic || 'No topic'; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
+  const keys = [...groups.keys()].sort((a, b) => (a === 'No topic') - (b === 'No topic') || a.localeCompare(b));
+  document.getElementById('taskList').innerHTML = keys.length
+    ? keys.map(k => section(esc(k), groups.get(k))).join('')
+    : `<div class="card empty">No tasks match these filters.</div>`;
 }
-
-function renderMembers(){
-  const tbody = document.getElementById('memberTbody');
-  tbody.innerHTML = sortedMembers().map(m => {
-    const acc = accounts.find(a => a.memberId === m.id);
-    const count = tracked().filter(t => t.assigneeId === m.id && (t.status === 'todo' || t.status === 'progress')).length;
-    const state = !acc ? '<span class="badge blocked">No sign-in</span>'
-      : `${esc(acc.username)}${acc.mustChangePassword ? '<br><span class="locked-badge">still using 123456</span>' : ''}`;
-    const perm = acc ? `<select class="perm-select" onchange="changeAccountPermission(${acc.id}, this.value)"><option value="staff" ${acc.role==='staff'?'selected':''}>Staff</option><option value="admin" ${acc.role==='admin'?'selected':''}>Manager</option></select>` : '<span class="locked-badge">—</span>';
-    return `<tr><td>${esc(m.name)}</td><td>${esc(m.role)}</td><td>${state}</td><td>${perm}</td><td>${count}</td>
-      <td style="white-space:nowrap">${acc ? `<button class="del-btn" onclick="resetPassword(${acc.id})" title="Reset password to 123456" style="margin-right:6px">🔑</button>` : ''}<button class="del-btn" onclick="openEditMember(${m.id})" title="Edit" style="margin-right:6px">✎</button><button class="del-btn" onclick="removeMember(${m.id})" title="Delete">✕</button></td></tr>`;
-  }).join('') || '<tr><td colspan="6"><div class="empty-state">No members yet</div></td></tr>';
-  const mgr = accounts.filter(a => a.memberId == null);
-  document.getElementById('managerAccounts').innerHTML = mgr.length ? mgr.map(a => `<div class="item-row"><div>${esc(a.username)}<div class="meta">${a.mustChangePassword ? 'still using 123456' : 'active'}${a.id === currentAccount.id ? ' · you' : ''}</div></div>
-    <div class="actions">${a.id !== currentAccount.id ? `<button class="btn btn-ghost" onclick="resetPassword(${a.id})">Reset password</button>` : ''}${a.id !== currentAccount.id ? `<button class="btn btn-ghost" onclick="removeManagerAccount(${a.id})">Remove</button>` : ''}</div></div>`).join('') : '<div class="empty-state" style="padding:16px">None.</div>';
+function calShift(n){ if(n === 0){ calView = new Date(); calView.setDate(1); } else calView.setMonth(calView.getMonth() + n); renderCalendar(); }
+function renderCalendar(){
+  const y = calView.getFullYear(), m = calView.getMonth();
+  document.getElementById('calTitle').textContent = calView.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const first = new Date(y, m, 1), offset = (first.getDay() + 6) % 7;
+  const start = new Date(y, m, 1 - offset);
+  const byDay = {};
+  tasks.forEach(t => { const d = t.due || t.start; if(d) (byDay[d] = byDay[d] || []).push(t); });
+  let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-wd">${d}</div>`).join('');
+  const cells = Math.ceil((offset + new Date(y, m + 1, 0).getDate()) / 7) * 7;
+  for(let i = 0; i < cells; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const iso = isoLocal(d), list = (byDay[iso] || []).sort(byDue);
+    const cls = ['cal-day', d.getMonth() !== m ? 'other' : '', iso === today ? 'today' : '', d.getDay() === 0 ? 'sun' : ''].join(' ');
+    html += `<div class="${cls}" ondblclick="openTaskForm(null,{due:'${iso}'})"><div class="cal-num">${d.getDate()}</div>
+      ${list.map(t => `<span class="cal-task ${t.status}" onclick="openDetail(${t.id})" title="${esc(t.title)}">${esc(t.title)}</span>`).join('')}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
 }
-
-// Compare: thành viên A → Z
-function renderCompare(){
-  const ms = sortedMembers();
-  const act = (m) => tracked().filter(t => t.assigneeId === m.id && (t.status === 'todo' || t.status === 'progress'));
-  const busy = (m) => act(m).reduce((s,t) => s + daysBetween(t.start, t.end), 0);
-  const maxC = Math.max(1, ...ms.map(m => act(m).length)), maxB = Math.max(1, ...ms.map(busy));
-  document.getElementById('cmpTaskCount').innerHTML = ms.map(m => `<div class="cmp-row"><div class="cmp-name">${esc(m.name)}</div><div class="cmp-bar-track"><div class="cmp-bar-fill" style="width:${act(m).length/maxC*100}%"></div></div><div class="cmp-value">${act(m).length} task</div></div>`).join('');
-  document.getElementById('cmpBusyDays').innerHTML = ms.map(m => `<div class="cmp-row"><div class="cmp-name">${esc(m.name)}</div><div class="cmp-bar-track"><div class="cmp-bar-fill alt" style="width:${busy(m)/maxB*100}%"></div></div><div class="cmp-value">${busy(m)} days</div></div>`).join('');
-  document.getElementById('cmpDoneHead').textContent = `Done ${THIS_YEAR}`;
-  document.getElementById('cmpTable').innerHTML = ms.map(m => {
-    const mine = tracked().filter(t => t.assigneeId === m.id), n = (s) => mine.filter(t => t.status === s).length;
-    const done = mine.filter(t => t.status === 'done');
-    const avg = done.length ? Math.round(done.reduce((s,t) => s + daysBetween(t.start, t.end), 0) / done.length) : 0;
-    return `<tr><td>${esc(m.name)}</td><td>${n('todo')}</td><td>${n('progress')}</td><td>${n('blocked')}</td><td>${done.length}</td><td class="duration">${busy(m)} days</td><td class="duration">${avg} days</td></tr>`;
-  }).join('');
+function renderLog(){
+  const taskSel = document.getElementById('logTask'), curTask = taskSel.value;
+  taskSel.innerHTML = '<option value="">General note</option>' + tasks.filter(t => t.status !== 'done').sort(byDue)
+    .map(t => `<option value="${t.id}">${esc(t.title)}</option>`).join('');
+  if([...taskSel.options].some(o => o.value === curTask)) taskSel.value = curTask;
+  const monthSel = document.getElementById('logMonth'), curMonth = monthSel.value || today.slice(0, 7);
+  const months = [...new Set([today.slice(0, 7), ...updates.map(u => isoLocal(new Date(u.at)).slice(0, 7))])].sort().reverse();
+  monthSel.innerHTML = months.map(x => `<option value="${x}">${x.slice(5)}/${x.slice(0, 4)}</option>`).join('');
+  monthSel.value = months.includes(curMonth) ? curMonth : months[0];
+  const list = updates.filter(u => isoLocal(new Date(u.at)).slice(0, 7) === monthSel.value);
+  document.getElementById('logList').innerHTML = list.length ? list.map(logItem).join('') : '<div class="empty">No entries this month.</div>';
 }
-
-function renderLogView(){
-  document.getElementById('logDateLabel').textContent = fmtDateFull(todayPlus(0));
-  const box = document.getElementById('logEntryBox');
-  if(currentUserId != null){
-    box.style.display = '';
-    const mine = tasks.filter(t => t.assigneeId === currentUserId && !isOldDone(t)).sort((a,b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
-    const sel = document.getElementById('logTaskSelect'), prev = sel.value;
-    sel.innerHTML = '<option value="">General note (not tied to a specific task)</option>' + mine.map(t => { const tp = topics.find(x => x.id === t.topicId); return `<option value="${t.id}">[${statusMeta[t.status].label}] ${esc(tp ? tp.name + ' › ' : '')}${esc(t.title)}</option>`; }).join('');
-    sel.value = [...sel.options].some(o => o.value === prev) ? prev : '';
-  } else box.style.display = 'none';
-  const fs = document.getElementById('logFilterMember'), prevF = fs.value;
-  fs.innerHTML = '<option value="all">All members</option>' + sortedMembers().map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
-  fs.value = [...fs.options].some(o => o.value === prevF) ? prevF : 'all';
-  renderLogYears();
-  renderLogList();
-}
-
 function renderAll(){
-  if(!currentAccount) return;
-  renderRoleBar(); renderStats(); renderAssigneeSelect(); renderTopicSelect(); renderTaskFilters();
-  renderDashboard(); renderCalendar(); renderTasks(); renderPending();
-  renderCompare(); renderLogView(); renderMembers();
-  if(openTaskDetailId !== null) renderTaskDetail();
+  renderStats(); renderToday(); renderTopicFilter(); renderTasks(); renderCalendar(); renderLog();
+  if(openDetailId) renderDetail();
 }
 
-// ================= DATA & EXCEL (Manager) =================
-function backupObject(){
-  return { app: 'Team Tracker (Supabase)', savedAt: new Date().toISOString(), db: {
-    topics, members: members.map(m => ({ id: m.id, name: m.name, jobTitle: m.role, avatar: m.avatar, avatarColor: m.avatarColor })),
-    accounts: accounts.map(a => ({ id: a.id, username: a.username, role: a.role, memberId: a.memberId })),
-    tasks: tasks.map(t => ({ id: t.id, topicId: t.topicId, title: t.title, assigneeId: t.assigneeId, support: t.support, start: t.start, end: t.end, status: t.status, doneAt: t.doneAt, createdAt: t.createdAt, updates: t.updates })),
-    dailyLogs } };
+function exportCsv(){
+  const rows = [['Title','Topic','Status','Priority','Start','Deadline','Done on','Notes']];
+  tasks.slice().sort(byDue).forEach(t => rows.push([t.title, t.topic, STATUS[t.status], t.priority, t.start || '', t.due || '', t.doneAt || '', t.notes]));
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `my-tasks_${today}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-// Tự lưu vào kho file khi Manager mở app: file Excel Done của từng năm đã qua, file năm nay (mỗi ngày), bản sao lưu mỗi ngày
-let autoSaveDone = false;
-async function autoSaveFiles(){
-  if(autoSaveDone || currentRole !== 'admin') return;
-  autoSaveDone = true;
-  try {
-    const st = fullState();
-    const have = new Set((await TT.listFiles('done-by-year')).map(f => f.name));
-    const years = [...new Set(tasks.map(doneYear).filter(Boolean))].sort();
-    for(const y of years){
-      const name = `Done-tasks-${y}.xlsx`;
-      const today = todayPlus(0);
-      const marker = `teamTracker:saved:${y}`;
-      if(y < THIS_YEAR ? !have.has(name) : localStorage.getItem(marker) !== today){
-        await TT.upload(`done-by-year/${name}`, TTXlsx.buildDoneByYear(st, y));
-        if(y === THIS_YEAR) try { localStorage.setItem(marker, today); } catch(e){}
-      }
-    }
-    const backups = await TT.listFiles('backups');
-    const todayName = `backup-${todayPlus(0)}.json`;
-    if(!backups.some(f => f.name === todayName)){
-      await TT.upload(`backups/${todayName}`, new Blob([JSON.stringify(backupObject())], { type: 'application/json' }), 'application/json');
-      const old = backups.map(f => f.name).filter(n => /^backup-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort().reverse().slice(59);
-      await TT.removeFiles(old.map(n => `backups/${n}`));
-    }
-    if(document.getElementById('view-data').classList.contains('active')) renderDataView();
-  } catch(e){ console.warn('Auto save of files skipped:', e.message); }
-}
+// ---------- boot ----------
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + b.dataset.view));
+}));
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  ['taskFormOverlay', 'detailOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+});
+// Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && !document.body.classList.contains('locked')) refresh().catch(handleError);
+});
 
-async function downloadStored(path, name){
-  try { saveBlob(name, await TT.download(path)); } catch(e){ handleApiError(e); }
-}
-async function rebuildYear(y){
-  try { await TT.upload(`done-by-year/Done-tasks-${y}.xlsx`, TTXlsx.buildDoneByYear(fullState(), y)); toast(`Saved Done-tasks-${y}.xlsx`); renderDataView(); }
-  catch(e){ handleApiError(e); }
-}
-
-async function renderDataView(){
-  const box = document.getElementById('dataViewBody');
-  if(!box || currentRole !== 'admin') return;
-  const years = [...new Set(tasks.map(doneYear).filter(Boolean).concat([THIS_YEAR]))].sort().reverse();
-  let stored = [], backups = [], storageError = '';
-  try { [stored, backups] = await Promise.all([TT.listFiles('done-by-year'), TT.listFiles('backups')]); }
-  catch(e){ storageError = e.message; }
-  const storedMap = new Map(stored.map(f => [f.name, f]));
-  const when = (f) => f && (f.updated_at || f.created_at) ? new Date(f.updated_at || f.created_at).toLocaleString('en-GB') : '';
-  box.innerHTML = `
-    <div class="compare-panel">
-      <h3>Done tasks by year (Excel)</h3>
-      <p class="data-note">One file per year, based on the date each task was marked Done. Each file has a summary and one sheet per member (A → Z).
-        Files for past years are saved automatically in the app's storage when a Manager opens the app; this year's file is refreshed once a day.</p>
-      ${storageError ? `<p class="data-note" style="color:var(--blocked)">Storage is not available: ${esc(storageError)}</p>` : ''}
-      <table class="task-table"><thead><tr><th>Year</th><th>Done tasks</th><th>Saved copy</th><th></th></tr></thead><tbody>
-      ${years.map(y => { const f = storedMap.get(`Done-tasks-${y}.xlsx`); const n = tasks.filter(t => doneYear(t) === y).length;
-        return `<tr><td><b>${y}</b>${y === THIS_YEAR ? ' <span class="locked-badge">(so far)</span>' : ''}</td><td>${n}</td><td>${f ? when(f) : '<span class="locked-badge">not saved yet</span>'}</td>
-          <td style="white-space:nowrap"><button class="btn btn-brick" onclick="exportDoneYear('${y}')">⬇ Download</button> <button class="btn btn-ghost" onclick="rebuildYear('${y}')">Save to storage</button></td></tr>`; }).join('')}
-      </tbody></table>
-    </div>
-    <div class="compare-panel">
-      <h3>Current work (Excel)</h3>
-      <p class="data-note">Open tasks by member A → Z (Not started, then In progress), and Pending on a separate sheet.</p>
-      <div class="data-actions"><button class="btn btn-brick" onclick="exportOpenTasks()">⬇ Open tasks</button><button class="btn btn-ghost" onclick="exportExcel()">⬇ Everything (all tasks, updates, daily log)</button></div>
-    </div>
-    <div class="compare-panel">
-      <h3>Backups</h3>
-      <p class="data-note">A backup is saved automatically once a day when a Manager opens the app (last 60 kept). You can also download one now, or import a backup or the data file from an older version of the app.</p>
-      <div class="data-actions">
-        <button class="btn btn-ghost" onclick="saveBlob('Team-Tracker-backup_' + stamp() + '.json', new Blob([JSON.stringify(backupObject())], { type: 'application/json' }))">⬇ Download backup now</button>
-        <label class="btn btn-ghost" style="cursor:pointer">⬆ Import data file…<input type="file" id="importFile" accept=".json,application/json" hidden></label>
-        <span class="log-saved-note" id="importMsg"></span>
-      </div>
-      ${backups.length ? `<table class="task-table" style="margin-top:12px"><thead><tr><th>Saved backup</th><th>Time</th><th></th></tr></thead><tbody>${backups.slice(0, 10).map(f => `<tr><td>${esc(f.name)}</td><td>${when(f)}</td><td><button class="btn btn-ghost" onclick="downloadStored('backups/${esc(f.name)}', '${esc(f.name)}')">⬇</button></td></tr>`).join('')}</tbody></table>` : ''}
-    </div>`;
-  document.getElementById('importFile').addEventListener('change', async (e) => {
-    const file = e.target.files[0]; e.target.value = '';
-    if(!file) return;
-    const msg = document.getElementById('importMsg');
-    let data;
-    try { data = JSON.parse(await file.text()); } catch(err){ msg.style.color = 'var(--blocked)'; msg.textContent = 'This file is not valid JSON.'; return; }
-    if(!confirm('Import this file? ALL current topics, members, tasks and daily logs will be replaced. Sign-in accounts are kept. A backup of the current data is downloaded first.')) return;
-    saveBlob('Before-import_' + stamp() + '.json', new Blob([JSON.stringify(backupObject())], { type: 'application/json' }));
-    msg.style.color = ''; msg.textContent = 'Importing…';
-    try {
-      const r = await TT.rpc('tt_import', { p_data: data });
-      applyState(await TT.loadState());
-      alert(`Imported ${r.tasks} tasks, ${r.updates} updates and ${r.logs} daily log entries for ${r.members} members.` + (r.skipped ? ` ${r.skipped} item(s) were skipped.` : '') + (r.noLogin ? ` ${r.noLogin} member(s) have no username yet: add one in "Members & Accounts".` : ''));
-    } catch(err){ msg.style.color = 'var(--blocked)'; msg.textContent = err.message; }
-  });
-}
-
-boot();
+(async function boot(){
+  if(!TT.hasSession()){ showLogin(); return; }
+  try { const st = await refresh(); afterLogin(st.mustChange); }
+  catch(e){ showLogin(e.auth ? '' : e.message); }
+})();
 </script>
 </body>
 </html>
