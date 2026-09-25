@@ -5,6 +5,12 @@
 <title>My Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2F6F62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My Tracker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- Supabase (đăng nhập + dữ liệu). Phiên bản cố định để trang không tự thay đổi. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
@@ -186,7 +192,7 @@
     <div class="header-actions">
       <span class="sync" id="sync">☁ Saved</span>
       <button class="btn" onclick="openTaskForm()">+ New task</button>
-      <button class="btn btn-ghost" onclick="openCalendarModal()">🔔 Calendar reminders</button>
+      <button class="btn btn-ghost" onclick="openCalendarModal()">🔔 Reminders</button>
       <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
     </div>
@@ -248,7 +254,7 @@
     </div>
     <div class="cal-grid" id="calGrid"></div>
     <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).
-      Want reminders on your phone? <a href="#" onclick="openCalendarModal();return false">Connect to Google / Apple Calendar</a>.</p>
+      Want reminders on your phone? <a href="#" onclick="openCalendarModal();return false">Turn on notifications or connect your calendar</a>.</p>
   </div>
 
   <!-- LOG -->
@@ -289,6 +295,8 @@
     </div>
     <div class="field"><label for="tStatus">Status</label>
       <select id="tStatus"><option value="todo">Not started</option><option value="progress">In progress</option><option value="pending">Pending</option><option value="done">Done</option></select></div>
+    <div class="field"><label for="tRemind">Remind me at (optional notification)</label>
+      <div style="display:flex;gap:8px"><input type="datetime-local" id="tRemind"><button type="button" class="btn btn-ghost" onclick="document.getElementById('tRemind').value=''">Clear</button></div></div>
     <div class="field"><label for="tNotes">Notes</label><textarea id="tNotes" rows="4"></textarea></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="tDelete" onclick="deleteTaskFromForm()">Delete</button>
@@ -326,8 +334,17 @@
 <!-- CALENDAR REMINDERS -->
 <div class="overlay" id="calOverlay" onclick="if(event.target===this)closeOverlay('calOverlay')">
   <div class="modal">
-    <h2>🔔 Calendar reminders</h2>
-    <p style="font-size:14px;margin-top:-6px">Subscribe to this private link in your calendar app. Every unfinished task with a deadline shows up on its deadline day, and overdue tasks also appear on today so you remember to continue them.</p>
+    <h2>🔔 Reminders</h2>
+    <h3 style="font-size:16px;margin:0 0 4px">Notifications from this site</h3>
+    <p style="font-size:14px;margin-top:0">My Tracker sends notifications to this device, even when the site is closed:</p>
+    <ul class="steps">
+      <li><b>8:00 every morning</b>: overdue tasks, tasks due today, tasks in progress.</li>
+      <li><b>Keep going</b>: a nudge for “In progress” tasks with no update for 3+ days.</li>
+      <li><b>Your own time</b>: set <b>Remind me at</b> on a task (✎ Edit task).</li>
+    </ul>
+    <div id="pushBox" class="note" style="background:var(--primary-soft);color:var(--ink)"></div>
+    <h3 style="font-size:16px;margin:20px 0 4px">Calendar link</h3>
+    <p style="font-size:14px;margin-top:0">Subscribe to this private link in your calendar app. Every unfinished task with a deadline shows up on its deadline day, and overdue tasks also appear on today so you remember to continue them.</p>
     <div class="field"><label for="calUrl">Your private calendar link</label>
       <div class="cal-url"><input id="calUrl" readonly value="Loading…" onclick="this.select()"><button class="btn" onclick="copyCalUrl()">Copy</button></div>
     </div>
@@ -368,6 +385,8 @@ function addDays(iso, n){ const [y,m,d] = iso.split('-').map(Number); return iso
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
 function fmtDateTime(ts){ return new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function toLocalInput(ts){ const d = new Date(ts); return `${isoLocal(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function fmtRemind(ts){ const d = new Date(ts); return `${fmtDate(isoLocal(d)).slice(0,5)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function taskById(id){ return tasks.find(t => t.id === id); }
 function isOverdue(t){ return t.status !== 'done' && t.due && t.due < today; }
 function toast(msg){ const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 3500); }
@@ -446,6 +465,7 @@ function openTaskForm(id, preset){
   document.getElementById('tDue').value = t ? (t.due || '') : ((preset && preset.due) || '');
   document.getElementById('tStatus').value = t ? t.status : 'todo';
   document.getElementById('tNotes').value = t ? t.notes : '';
+  document.getElementById('tRemind').value = t && t.remindAt ? toLocalInput(t.remindAt) : '';
   document.getElementById('tDelete').hidden = !t;
   document.getElementById('topicList').innerHTML = topics().map(x => `<option value="${esc(x)}">`).join('');
   closeOverlay('detailOverlay');
@@ -462,7 +482,8 @@ async function saveTaskForm(ev){
     start: document.getElementById('tStart').value,
     due: document.getElementById('tDue').value,
     status: document.getElementById('tStatus').value,
-    notes: document.getElementById('tNotes').value
+    notes: document.getElementById('tNotes').value,
+    remindAt: document.getElementById('tRemind').value ? new Date(document.getElementById('tRemind').value).toISOString() : ''
   };
   if(!task.title) return;
   if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
@@ -495,6 +516,7 @@ function taskRow(t){
         ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
         ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
         ${dueChip(t)}
+        ${t.remindAt && t.status !== 'done' && new Date(t.remindAt) > new Date() ? `<span title="Reminder">⏰ ${fmtRemind(t.remindAt)}</span>` : ''}
         ${n ? `<span>💬 ${n}</span>` : ''}
         ${t.doneAt ? `<span class="s-done">✓ ${fmtDate(t.doneAt)}</span>` : ''}
       </div>
@@ -555,6 +577,7 @@ async function openCalendarModal(){
   const input = document.getElementById('calUrl');
   input.value = 'Loading…';
   document.getElementById('calOverlay').classList.add('open');
+  renderPushBox();
   try { input.value = await TT.calendarUrl(false); }
   catch(e){ input.value = ''; handleError(e); }
 }
@@ -568,6 +591,79 @@ async function copyCalUrl(){
 async function resetCalUrl(){
   if(!confirm('Create a new link? The current link will stop working and you will need to subscribe again.')) return;
   try { document.getElementById('calUrl').value = await TT.calendarUrl(true); toast('New link created. Subscribe again with it.'); }
+  catch(e){ handleError(e); }
+}
+
+// ---------- push notifications ----------
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function pushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function deviceLabel(){
+  const ua = navigator.userAgent;
+  const os = isIOS ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'Mac' : 'Device';
+  const br = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  return `${os} · ${br}`;
+}
+function b64ToBytes(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); const bin = atob(s + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(bin, c => c.charCodeAt(0)); }
+async function currentSubscription(){
+  if(!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+async function renderPushBox(){
+  const box = document.getElementById('pushBox');
+  if(!pushSupported()){
+    box.innerHTML = isIOS && !isStandalone
+      ? `On iPhone/iPad, notifications only work from the Home Screen app:<ol class="steps" style="margin-bottom:0"><li>In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>.</li><li>Open <b>My Tracker</b> from the new icon, sign in, and come back here.</li></ol>`
+      : 'This browser does not support notifications. Try Chrome, Edge, Firefox, or Safari (iPhone: from the Home Screen).';
+    return;
+  }
+  box.textContent = 'Checking…';
+  try {
+    const [st, sub] = await Promise.all([TT.pushStatus(), currentSubscription()]);
+    const here = sub && st.devices.some(d => d.endpoint === sub.endpoint);
+    const others = st.devices.filter(d => !sub || d.endpoint !== sub.endpoint);
+    const denied = Notification.permission === 'denied';
+    box.innerHTML = (here
+        ? `<b>✅ On for this device.</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="testPush()">Send a test</button><button class="btn btn-ghost" onclick="disablePush()">Turn off here</button></div>`
+        : denied
+          ? `<b>Notifications are blocked</b> for this site. Allow them in your browser/site settings, then reopen this window.`
+          : `<b>Off for this device.</b><div style="margin-top:8px"><button class="btn" onclick="enablePush()">Turn on notifications</button></div>`) +
+      (others.length ? `<div style="margin-top:10px;font-size:12px">Also on: ${others.map(d => esc(d.label || 'device')).join(', ')} <a href="#" onclick="removeOtherDevices();return false">remove</a></div>` : '');
+  } catch(e){ box.textContent = ''; handleError(e); }
+}
+async function enablePush(){
+  try {
+    if(await Notification.requestPermission() !== 'granted'){ toast('Notifications were not allowed.'); renderPushBox(); return; }
+    const reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const { publicKey } = await TT.pushStatus();
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+    await TT.pushSubscribe(sub.toJSON(), deviceLabel());
+    toast('Notifications are on. Sending a test…');
+    await TT.pushTest();
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function disablePush(){
+  try {
+    const sub = await currentSubscription();
+    if(sub){ await TT.pushUnsubscribe(sub.endpoint); await sub.unsubscribe(); }
+    toast('Notifications are off on this device.');
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function removeOtherDevices(){
+  if(!confirm('Stop notifications on all other devices?')) return;
+  try {
+    const [st, sub] = await Promise.all([TT.pushStatus(), currentSubscription()]);
+    for(const d of st.devices) if(!sub || d.endpoint !== sub.endpoint) await TT.pushUnsubscribe(d.endpoint);
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function testPush(){
+  try { await TT.pushTest(); toast('Test sent. It should arrive within a few seconds.'); }
   catch(e){ handleError(e); }
 }
 
@@ -698,6 +794,8 @@ document.addEventListener('keydown', e => {
 document.addEventListener('visibilitychange', () => {
   if(!document.hidden && !document.body.classList.contains('locked')) refresh().catch(handleError);
 });
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 (async function boot(){
   if(!TT.hasSession()){ showLogin(); return; }
