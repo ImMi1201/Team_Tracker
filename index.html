@@ -131,6 +131,18 @@
   .cal-task.done { background: var(--done-bg); text-decoration: line-through; color: var(--ink-soft); }
 
   /* ---------- LOG ---------- */
+  .steps-list { margin-bottom: 8px; }
+  .step { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .step:first-child { border-top: none; }
+  .step input[type=checkbox] { width: 18px; height: 18px; flex: none; accent-color: var(--primary); }
+  .step .step-title { flex: 1; cursor: text; }
+  .step.done .step-title { text-decoration: line-through; color: var(--ink-soft); }
+  .progress-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 4px 0 10px; }
+  .progress-bar > div { height: 100%; background: var(--done); }
+  .imp-row { padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .imp-row:first-child { border-top: none; }
+  .imp-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--done-bg); color: var(--done); margin-right: 6px; }
+  .imp-tag.upd { background: var(--progress-bg); color: var(--progress); }
   .log-item { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; }
   .log-item:first-child { border-top: none; }
   .log-when { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
@@ -192,6 +204,7 @@
     <div class="header-actions">
       <span class="sync" id="sync">☁ Saved</span>
       <button class="btn" onclick="openTaskForm()">+ New task</button>
+      <button class="btn btn-ghost" onclick="openImport()">📋 Import plan</button>
       <button class="btn btn-ghost" onclick="openCalendarModal()">🔔 Reminders</button>
       <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
@@ -306,6 +319,27 @@
       </div>
     </div>
   </form>
+</div>
+
+<!-- IMPORT PLAN -->
+<div class="overlay" id="importOverlay" onclick="if(event.target===this)closeOverlay('importOverlay')">
+  <div class="modal" style="max-width:640px">
+    <h2>📋 Import plan</h2>
+    <p style="font-size:14px;margin-top:-6px">Plan with ChatGPT / Claude, then paste the result here. New tasks are created; a task with the <b>same title</b> is updated (status, deadline, steps), so you can paste an updated plan again later.</p>
+    <ol class="steps">
+      <li><button class="btn btn-ghost" style="padding:4px 10px" onclick="copyImportPrompt()">Copy instructions for the chat</button> and paste them into your chat together with your plan.</li>
+      <li>Copy the chat's answer and paste it below.</li>
+    </ol>
+    <div class="field"><label for="importText">Plan</label>
+      <textarea id="importText" rows="10" style="font-family:'IBM Plex Mono',monospace;font-size:12px" oninput="previewImport()" placeholder="## Write thesis chapter 1&#10;topic: School&#10;status: in progress&#10;due: 2026-10-10&#10;priority: high&#10;- [x] Make outline&#10;- [ ] Write draft&#10;- [ ] Ask supervisor for feedback"></textarea></div>
+    <div id="importPreview"></div>
+    <div class="modal-actions">
+      <div class="right">
+        <button class="btn btn-ghost" onclick="closeOverlay('importOverlay')">Cancel</button>
+        <button class="btn" id="importBtn" onclick="doImport()" disabled>Import</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TASK DETAIL -->
@@ -517,6 +551,7 @@ function taskRow(t){
         ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
         ${dueChip(t)}
         ${t.remindAt && t.status !== 'done' && new Date(t.remindAt) > new Date() ? `<span title="Reminder">⏰ ${fmtRemind(t.remindAt)}</span>` : ''}
+        ${t.steps && t.steps.length ? `<span title="Steps done">☑ ${t.steps.filter(x => x.done).length}/${t.steps.length}</span>` : ''}
         ${n ? `<span>💬 ${n}</span>` : ''}
         ${t.doneAt ? `<span class="s-done">✓ ${fmtDate(t.doneAt)}</span>` : ''}
       </div>
@@ -550,6 +585,7 @@ function renderDetail(){
       ${dueChip(t)}
     </div>
     ${t.notes ? `<div class="detail-notes">${esc(t.notes)}</div>` : ''}
+    ${renderSteps(t)}
     <div class="field"><label for="dUpdate">Add an update</label><textarea id="dUpdate" placeholder="What's the latest on this task?"></textarea></div>
     <button class="btn" onclick="addDetailUpdate()">Add update</button>
     <h3 style="font-size:15px;margin:20px 0 6px">History</h3>
@@ -564,6 +600,117 @@ async function addDetailUpdate(){
   const body = document.getElementById('dUpdate').value.trim();
   if(!body) return;
   await mutate(() => TT.addUpdate(openDetailId, body));
+}
+
+// ---------- steps ----------
+function renderSteps(t){
+  const steps = t.steps || [], done = steps.filter(x => x.done).length;
+  return `<h3 style="font-size:15px;margin:0 0 4px">Steps ${steps.length ? `<span class="count mono" style="font-weight:400;font-size:12px;color:var(--ink-soft)">${done}/${steps.length}</span>` : ''}</h3>
+    ${steps.length ? `<div class="progress-bar"><div style="width:${Math.round(done / steps.length * 100)}%"></div></div>
+    <div class="card steps-list">${steps.map(x => `<div class="step ${x.done ? 'done' : ''}">
+      <input type="checkbox" ${x.done ? 'checked' : ''} onchange="toggleStep(${x.id}, this.checked)" aria-label="Done">
+      <span class="step-title" ondblclick="renameStep(${x.id})" title="Double-click to rename">${esc(x.title)}</span>
+      <button class="icon-btn" onclick="deleteStep(${x.id})" title="Delete step" aria-label="Delete step">✕</button></div>`).join('')}</div>` : ''}
+    <form style="display:flex;gap:8px;margin-bottom:16px" onsubmit="addStep(event, ${t.id})">
+      <input id="newStep" placeholder="Add a step…" maxlength="300"><button class="btn btn-ghost" type="submit">Add</button></form>`;
+}
+async function addStep(ev, taskId){
+  ev.preventDefault();
+  const title = document.getElementById('newStep').value.trim();
+  if(!title) return;
+  if(await mutate(() => TT.addStep(taskId, title))) setTimeout(() => { const el = document.getElementById('newStep'); if(el) el.focus(); }, 50);
+}
+async function toggleStep(id, done){ await mutate(() => TT.setStep(id, done)); }
+async function renameStep(id){
+  const t = taskById(openDetailId), st = t && t.steps.find(x => x.id === id);
+  const title = st && prompt('Rename step', st.title);
+  if(title && title.trim() && title.trim() !== st.title) await mutate(() => TT.setStep(id, null, title.trim()));
+}
+async function deleteStep(id){ if(confirm('Delete this step?')) await mutate(() => TT.deleteStep(id)); }
+
+// ---------- import plan ----------
+const IMPORT_PROMPT = `Turn our plan into tasks for my task tracker. Reply ONLY with a code block in exactly this format, one block per task:
+
+## <task title>
+topic: <project or area, optional>
+status: <not started | in progress | pending | done>
+start: <YYYY-MM-DD, optional>
+due: <YYYY-MM-DD, optional>
+priority: <low | normal | high>
+remind: <YYYY-MM-DD HH:MM, optional: when to send me a notification>
+notes: <one line, optional>
+- [ ] <step>
+- [x] <step already done>
+
+Rules: keep titles short and unique; reuse the exact same title when updating a task I already have; break each task into small concrete steps in the order I should do them; write in the language we are using. Today is ${isoLocal(new Date())}.`;
+function copyImportPrompt(){
+  navigator.clipboard.writeText(IMPORT_PROMPT).then(() => toast('Instructions copied. Paste them into your chat.'), () => {
+    const ta = document.getElementById('importText'); ta.value = IMPORT_PROMPT; ta.select(); toast('Copy the instructions from the box, then clear it.');
+  });
+}
+function openImport(){
+  document.getElementById('importText').value = '';
+  previewImport();
+  document.getElementById('importOverlay').classList.add('open');
+}
+function normDate(v){
+  v = String(v || '').trim(); if(!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+function normRemind(v){
+  const d = normDate(v); if(!d) return d;
+  const tm = String(v).match(/(\d{1,2}):(\d{2})/);
+  return new Date(`${d}T${tm ? tm[1].padStart(2,'0') + ':' + tm[2] : '09:00'}`).toISOString();
+}
+// Đọc kế hoạch: JSON (danh sách task) hoặc Markdown ("## Tiêu đề", "key: value", "- [ ] bước").
+function parsePlan(text){
+  text = String(text || '').replace(/```[a-z]*\n?/gi, '').trim();
+  if(!text) return [];
+  if(/^[\[{]/.test(text)){
+    let data = JSON.parse(text); if(!Array.isArray(data)) data = data.tasks || [data];
+    return data.map(t => ({ ...t, steps: (t.steps || []).map(x => typeof x === 'string' ? { title: x, done: false } : x) }));
+  }
+  const tasks = []; let cur = null, topic = '';
+  const keys = { topic: 'topic', project: 'topic', status: 'status', start: 'start', due: 'due', deadline: 'due', priority: 'priority', remind: 'remindAt', reminder: 'remindAt', notes: 'notes', note: 'notes' };
+  for(const raw of text.split(/\r?\n/)){
+    const line = raw.trim(); if(!line) continue;
+    let m;
+    if((m = line.match(/^#\s+(.+)/)) && !line.startsWith('##')){ topic = m[1].trim(); continue; }
+    if((m = line.match(/^#{2,}\s+(.+)/))){ cur = { title: m[1].replace(/\*\*/g, '').trim(), steps: [] }; if(topic) cur.topic = topic; tasks.push(cur); continue; }
+    if(!cur) continue;
+    if((m = line.match(/^[-*+]\s*\[([ xX✓✔])\]\s*(.+)/))){ cur.steps.push({ title: m[2].trim(), done: m[1] !== ' ' }); continue; }
+    if((m = line.match(/^(\d+[.)]|[-*+])\s+(.+)/))){ cur.steps.push({ title: m[2].trim(), done: false }); continue; }
+    if((m = line.match(/^\**([A-Za-z]+)\**\s*:\s*(.*)$/)) && keys[m[1].toLowerCase()]){ const v = m[2].trim(); if(v) cur[keys[m[1].toLowerCase()]] = v; continue; }
+    cur.notes = (cur.notes ? cur.notes + '\n' : '') + line;
+  }
+  return tasks;
+}
+let importTasksParsed = [];
+function previewImport(){
+  const box = document.getElementById('importPreview'), btn = document.getElementById('importBtn');
+  importTasksParsed = []; btn.disabled = true;
+  let list;
+  try { list = parsePlan(document.getElementById('importText').value); }
+  catch(e){ box.innerHTML = `<div class="note" style="color:var(--blocked)">Could not read this text: ${esc(e.message)}</div>`; return; }
+  if(!list.length){ box.innerHTML = document.getElementById('importText').value.trim() ? `<div class="note">No tasks found. Each task must start with a line like <b>## Task title</b>.</div>` : ''; return; }
+  const problems = [];
+  list.forEach(t => {
+    for(const k of ['start', 'due']) if(t[k]){ const d = normDate(t[k]); if(d === null) problems.push(`“${t.title}”: can't read ${k} date “${t[k]}”`); t[k] = d || ''; }
+    if(t.remindAt){ const r = normRemind(t.remindAt); if(r === null) problems.push(`“${t.title}”: can't read remind time`); t.remindAt = r || ''; }
+  });
+  const existing = new Set(tasks.map(t => t.title.toLowerCase()));
+  box.innerHTML = `<div class="card" style="max-height:260px;overflow:auto">${list.map(t => `<div class="imp-row">
+      <span class="imp-tag ${existing.has(t.title.trim().toLowerCase()) ? 'upd' : ''}">${existing.has(t.title.trim().toLowerCase()) ? 'update' : 'new'}</span><b>${esc(t.title)}</b>
+      <div class="task-meta">${t.status ? `<span>${esc(t.status)}</span>` : ''}${t.topic ? `<span>${esc(t.topic)}</span>` : ''}${t.due ? `<span>due ${fmtDate(t.due)}</span>` : ''}${t.remindAt ? `<span>⏰ ${fmtRemind(t.remindAt)}</span>` : ''}${t.steps.length ? `<span>☑ ${t.steps.filter(x => x.done).length}/${t.steps.length} steps</span>` : ''}</div></div>`).join('')}</div>
+    ${problems.length ? `<div class="note" style="color:var(--blocked)">${problems.map(esc).join('<br>')}</div>` : ''}`;
+  importTasksParsed = list; btn.disabled = !!problems.length;
+}
+async function doImport(){
+  if(!importTasksParsed.length) return;
+  const r = await mutate(() => TT.importTasks(importTasksParsed));
+  if(r){ closeOverlay('importOverlay'); toast(`Imported: ${r.created} new, ${r.updated} updated, ${r.steps} steps.`); }
 }
 
 // ---------- calendar reminders ----------
@@ -788,7 +935,7 @@ document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', (
 }));
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['taskFormOverlay', 'detailOverlay', 'calOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
 });
 // Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
 document.addEventListener('visibilitychange', () => {

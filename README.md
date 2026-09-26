@@ -26,12 +26,33 @@ Chỉ vào được khi có **mật khẩu**; dữ liệu nằm trên Supabase v
 
 Bấm vào tên task để xem chi tiết và ghi cập nhật; bấm ✎ để sửa hoặc xoá.
 
+## Các bước trong task và nhập kế hoạch từ chat
+
+- Mở một task để thấy danh sách **Steps**: tick khi xong, nhấp đúp để đổi tên, ✕ để xoá, gõ vào *Add a step…* để thêm. Tick bước đầu tiên sẽ tự chuyển task sang *In progress*. Thanh tiến độ và số ☑ 2/5 hiện ở danh sách task.
+- **📋 Import plan**: lập kế hoạch bằng ChatGPT/Claude rồi dán vào đây.
+  1. Bấm **Copy instructions for the chat**, dán vào cuộc chat cùng với kế hoạch của bạn.
+  2. Chép câu trả lời của chat, dán vào ô *Plan*, xem trước, rồi bấm **Import**.
+- Task **trùng tên** (không phân biệt hoa thường) sẽ được **cập nhật**: trạng thái, deadline, bước nào đã xong. Bước mới được thêm vào cuối. Muốn cập nhật tiến độ, nhờ chat viết lại kế hoạch với cùng tên task rồi import lại.
+- Định dạng (chat sẽ tự viết theo hướng dẫn đã copy):
+
+```
+## Tên task
+topic: Dự án
+status: in progress        (not started | in progress | pending | done)
+due: 2026-10-10            (hoặc 10/10/2026)
+priority: high             (low | normal | high)
+remind: 2026-10-01 20:00   (giờ gửi thông báo, tuỳ chọn)
+notes: Một dòng ghi chú
+- [x] Bước đã xong
+- [ ] Bước tiếp theo
+```
+
 ## Thông báo nhắc việc (web tự nhắc)
 
 Bấm **🔔 Reminders → Turn on notifications** trên từng thiết bị muốn nhận thông báo (điện thoại, máy tính). Thông báo hiện cả khi đã đóng trang:
 
 - **8:00 sáng mỗi ngày**: tổng hợp task quá hạn, đến hạn hôm nay, đang làm.
-- **Nhắc làm tiếp**: task *In progress* không có cập nhật nào từ 3 ngày trở lên.
+- **Nhắc làm tiếp**: task *In progress* không có cập nhật nào (kể cả tick bước) từ 3 ngày trở lên; thông báo ghi luôn bước tiếp theo cần làm.
 - **Giờ nhắc riêng**: sửa task (✎) và điền **Remind me at**.
 
 Bấm **Send a test** để thử. Bấm vào thông báo sẽ mở trang.
