@@ -5,6 +5,12 @@
 <title>My Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2F6F62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My Tracker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- Supabase (đăng nhập + dữ liệu). Phiên bản cố định để trang không tự thay đổi. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
@@ -125,6 +131,18 @@
   .cal-task.done { background: var(--done-bg); text-decoration: line-through; color: var(--ink-soft); }
 
   /* ---------- LOG ---------- */
+  .steps-list { margin-bottom: 8px; }
+  .step { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .step:first-child { border-top: none; }
+  .step input[type=checkbox] { width: 18px; height: 18px; flex: none; accent-color: var(--primary); }
+  .step .step-title { flex: 1; cursor: text; }
+  .step.done .step-title { text-decoration: line-through; color: var(--ink-soft); }
+  .progress-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 4px 0 10px; }
+  .progress-bar > div { height: 100%; background: var(--done); }
+  .imp-row { padding: 10px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .imp-row:first-child { border-top: none; }
+  .imp-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--done-bg); color: var(--done); margin-right: 6px; }
+  .imp-tag.upd { background: var(--progress-bg); color: var(--progress); }
   .log-item { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; }
   .log-item:first-child { border-top: none; }
   .log-when { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
@@ -139,6 +157,11 @@
   .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
   .modal-actions .right { display: flex; gap: 8px; margin-left: auto; }
   .detail-notes { white-space: pre-wrap; font-size: 14px; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+  .cal-url { display: flex; gap: 8px; margin-bottom: 8px; }
+  .cal-url input { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .steps { font-size: 14px; line-height: 1.55; padding-left: 20px; margin: 6px 0 14px; }
+  .steps li { margin-bottom: 4px; }
+  .note { font-size: 13px; color: var(--ink-soft); background: var(--bg); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
   .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; max-width: calc(100% - 32px); }
@@ -181,6 +204,8 @@
     <div class="header-actions">
       <span class="sync" id="sync">☁ Saved</span>
       <button class="btn" onclick="openTaskForm()">+ New task</button>
+      <button class="btn btn-ghost" onclick="openImport()">📋 Import plan</button>
+      <button class="btn btn-ghost" onclick="openCalendarModal()">🔔 Reminders</button>
       <button class="btn btn-ghost" onclick="openPasswordModal(false)">Change password</button>
       <button class="btn btn-ghost" onclick="doLogout()">Log out</button>
     </div>
@@ -241,7 +266,8 @@
       </div>
     </div>
     <div class="cal-grid" id="calGrid"></div>
-    <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).</p>
+    <p style="font-size:12px;color:var(--ink-soft)">Tasks are shown on their deadline (or start date if there is no deadline).
+      Want reminders on your phone? <a href="#" onclick="openCalendarModal();return false">Turn on notifications or connect your calendar</a>.</p>
   </div>
 
   <!-- LOG -->
@@ -282,6 +308,8 @@
     </div>
     <div class="field"><label for="tStatus">Status</label>
       <select id="tStatus"><option value="todo">Not started</option><option value="progress">In progress</option><option value="pending">Pending</option><option value="done">Done</option></select></div>
+    <div class="field"><label for="tRemind">Remind me at (optional notification)</label>
+      <div style="display:flex;gap:8px"><input type="datetime-local" id="tRemind"><button type="button" class="btn btn-ghost" onclick="document.getElementById('tRemind').value=''">Clear</button></div></div>
     <div class="field"><label for="tNotes">Notes</label><textarea id="tNotes" rows="4"></textarea></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="tDelete" onclick="deleteTaskFromForm()">Delete</button>
@@ -291,6 +319,27 @@
       </div>
     </div>
   </form>
+</div>
+
+<!-- IMPORT PLAN -->
+<div class="overlay" id="importOverlay" onclick="if(event.target===this)closeOverlay('importOverlay')">
+  <div class="modal" style="max-width:640px">
+    <h2>📋 Import plan</h2>
+    <p style="font-size:14px;margin-top:-6px">Plan with ChatGPT / Claude, then paste the result here. New tasks are created; a task with the <b>same title</b> is updated (status, deadline, steps), so you can paste an updated plan again later.</p>
+    <ol class="steps">
+      <li><button class="btn btn-ghost" style="padding:4px 10px" onclick="copyImportPrompt()">Copy instructions for the chat</button> and paste them into your chat together with your plan.</li>
+      <li>Copy the chat's answer and paste it below.</li>
+    </ol>
+    <div class="field"><label for="importText">Plan</label>
+      <textarea id="importText" rows="10" style="font-family:'IBM Plex Mono',monospace;font-size:12px" oninput="previewImport()" placeholder="## Write thesis chapter 1&#10;topic: School&#10;status: in progress&#10;due: 2026-10-10&#10;priority: high&#10;- [x] Make outline&#10;- [ ] Write draft&#10;- [ ] Ask supervisor for feedback"></textarea></div>
+    <div id="importPreview"></div>
+    <div class="modal-actions">
+      <div class="right">
+        <button class="btn btn-ghost" onclick="closeOverlay('importOverlay')">Cancel</button>
+        <button class="btn" id="importBtn" onclick="doImport()" disabled>Import</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TASK DETAIL -->
@@ -316,6 +365,43 @@
   </form>
 </div>
 
+<!-- CALENDAR REMINDERS -->
+<div class="overlay" id="calOverlay" onclick="if(event.target===this)closeOverlay('calOverlay')">
+  <div class="modal">
+    <h2>🔔 Reminders</h2>
+    <h3 style="font-size:16px;margin:0 0 4px">Notifications from this site</h3>
+    <p style="font-size:14px;margin-top:0">My Tracker sends notifications to this device, even when the site is closed:</p>
+    <ul class="steps">
+      <li><b>8:00 every morning</b>: overdue tasks, tasks due today, tasks in progress.</li>
+      <li><b>Keep going</b>: a nudge for “In progress” tasks with no update for 3+ days.</li>
+      <li><b>Your own time</b>: set <b>Remind me at</b> on a task (✎ Edit task).</li>
+    </ul>
+    <div id="pushBox" class="note" style="background:var(--primary-soft);color:var(--ink)"></div>
+    <h3 style="font-size:16px;margin:20px 0 4px">Calendar link</h3>
+    <p style="font-size:14px;margin-top:0">Subscribe to this private link in your calendar app. Every unfinished task with a deadline shows up on its deadline day, and overdue tasks also appear on today so you remember to continue them.</p>
+    <div class="field"><label for="calUrl">Your private calendar link</label>
+      <div class="cal-url"><input id="calUrl" readonly value="Loading…" onclick="this.select()"><button class="btn" onclick="copyCalUrl()">Copy</button></div>
+    </div>
+    <h3 style="font-size:15px;margin:14px 0 4px">Google Calendar</h3>
+    <ol class="steps">
+      <li>Copy the link above.</li>
+      <li>On a computer, open <a href="https://calendar.google.com/calendar/u/0/r/settings/addbyurl" target="_blank" rel="noopener">Google Calendar → Add calendar → From URL</a>, paste the link, click <b>Add calendar</b>.</li>
+      <li>In Settings, click <b>My Tracker</b> (under “Other calendars”) and set <b>All-day event notifications</b>, e.g. “1 day before at 9:00” and “On the day at 8:00”.</li>
+    </ol>
+    <h3 style="font-size:15px;margin:14px 0 4px">iPhone / Apple Calendar</h3>
+    <ol class="steps">
+      <li>Settings → Calendar → Accounts → Add Account → Other → <b>Add Subscribed Calendar</b>, paste the link.</li>
+      <li>Reminders come with the calendar: 9:00 the day before and 8:00 on the deadline day.</li>
+    </ol>
+    <div class="note">Google refreshes subscribed calendars on its own schedule (usually every few hours up to a day), so new tasks can take a while to appear. For something urgent, open the task and use <b>Add to Google Calendar</b>, which adds it right away.</div>
+    <div class="note">Anyone with this link can see your task titles and deadlines. If it leaks, click <b>New link</b>: the old link stops working and you subscribe again with the new one.</div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="resetCalUrl()">New link</button>
+      <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('calOverlay')">Close</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -333,6 +419,8 @@ function addDays(iso, n){ const [y,m,d] = iso.split('-').map(Number); return iso
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; }
 function fmtDateTime(ts){ return new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+function toLocalInput(ts){ const d = new Date(ts); return `${isoLocal(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function fmtRemind(ts){ const d = new Date(ts); return `${fmtDate(isoLocal(d)).slice(0,5)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function taskById(id){ return tasks.find(t => t.id === id); }
 function isOverdue(t){ return t.status !== 'done' && t.due && t.due < today; }
 function toast(msg){ const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 3500); }
@@ -411,6 +499,7 @@ function openTaskForm(id, preset){
   document.getElementById('tDue').value = t ? (t.due || '') : ((preset && preset.due) || '');
   document.getElementById('tStatus').value = t ? t.status : 'todo';
   document.getElementById('tNotes').value = t ? t.notes : '';
+  document.getElementById('tRemind').value = t && t.remindAt ? toLocalInput(t.remindAt) : '';
   document.getElementById('tDelete').hidden = !t;
   document.getElementById('topicList').innerHTML = topics().map(x => `<option value="${esc(x)}">`).join('');
   closeOverlay('detailOverlay');
@@ -427,7 +516,8 @@ async function saveTaskForm(ev){
     start: document.getElementById('tStart').value,
     due: document.getElementById('tDue').value,
     status: document.getElementById('tStatus').value,
-    notes: document.getElementById('tNotes').value
+    notes: document.getElementById('tNotes').value,
+    remindAt: document.getElementById('tRemind').value ? new Date(document.getElementById('tRemind').value).toISOString() : ''
   };
   if(!task.title) return;
   if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
@@ -460,6 +550,8 @@ function taskRow(t){
         ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
         ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
         ${dueChip(t)}
+        ${t.remindAt && t.status !== 'done' && new Date(t.remindAt) > new Date() ? `<span title="Reminder">⏰ ${fmtRemind(t.remindAt)}</span>` : ''}
+        ${t.steps && t.steps.length ? `<span title="Steps done">☑ ${t.steps.filter(x => x.done).length}/${t.steps.length}</span>` : ''}
         ${n ? `<span>💬 ${n}</span>` : ''}
         ${t.doneAt ? `<span class="s-done">✓ ${fmtDate(t.doneAt)}</span>` : ''}
       </div>
@@ -493,12 +585,14 @@ function renderDetail(){
       ${dueChip(t)}
     </div>
     ${t.notes ? `<div class="detail-notes">${esc(t.notes)}</div>` : ''}
+    ${renderSteps(t)}
     <div class="field"><label for="dUpdate">Add an update</label><textarea id="dUpdate" placeholder="What's the latest on this task?"></textarea></div>
     <button class="btn" onclick="addDetailUpdate()">Add update</button>
     <h3 style="font-size:15px;margin:20px 0 6px">History</h3>
     <div class="card">${list.length ? list.map(logItem).join('') : '<div class="empty">No updates yet.</div>'}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="openTaskForm(${t.id})">✎ Edit task</button>
+      ${t.due ? `<a class="btn btn-ghost" style="text-decoration:none" href="${googleCalLink(t)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a>` : ''}
       <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('detailOverlay')">Close</button></div>
     </div>`;
 }
@@ -506,6 +600,218 @@ async function addDetailUpdate(){
   const body = document.getElementById('dUpdate').value.trim();
   if(!body) return;
   await mutate(() => TT.addUpdate(openDetailId, body));
+}
+
+// ---------- steps ----------
+function renderSteps(t){
+  const steps = t.steps || [], done = steps.filter(x => x.done).length;
+  return `<h3 style="font-size:15px;margin:0 0 4px">Steps ${steps.length ? `<span class="count mono" style="font-weight:400;font-size:12px;color:var(--ink-soft)">${done}/${steps.length}</span>` : ''}</h3>
+    ${steps.length ? `<div class="progress-bar"><div style="width:${Math.round(done / steps.length * 100)}%"></div></div>
+    <div class="card steps-list">${steps.map(x => `<div class="step ${x.done ? 'done' : ''}">
+      <input type="checkbox" ${x.done ? 'checked' : ''} onchange="toggleStep(${x.id}, this.checked)" aria-label="Done">
+      <span class="step-title" ondblclick="renameStep(${x.id})" title="Double-click to rename">${esc(x.title)}</span>
+      <button class="icon-btn" onclick="deleteStep(${x.id})" title="Delete step" aria-label="Delete step">✕</button></div>`).join('')}</div>` : ''}
+    <form style="display:flex;gap:8px;margin-bottom:16px" onsubmit="addStep(event, ${t.id})">
+      <input id="newStep" placeholder="Add a step…" maxlength="300"><button class="btn btn-ghost" type="submit">Add</button></form>`;
+}
+async function addStep(ev, taskId){
+  ev.preventDefault();
+  const title = document.getElementById('newStep').value.trim();
+  if(!title) return;
+  if(await mutate(() => TT.addStep(taskId, title))) setTimeout(() => { const el = document.getElementById('newStep'); if(el) el.focus(); }, 50);
+}
+async function toggleStep(id, done){ await mutate(() => TT.setStep(id, done)); }
+async function renameStep(id){
+  const t = taskById(openDetailId), st = t && t.steps.find(x => x.id === id);
+  const title = st && prompt('Rename step', st.title);
+  if(title && title.trim() && title.trim() !== st.title) await mutate(() => TT.setStep(id, null, title.trim()));
+}
+async function deleteStep(id){ if(confirm('Delete this step?')) await mutate(() => TT.deleteStep(id)); }
+
+// ---------- import plan ----------
+const IMPORT_PROMPT = `Turn our plan into tasks for my task tracker. Reply ONLY with a code block in exactly this format, one block per task:
+
+## <task title>
+topic: <project or area, optional>
+status: <not started | in progress | pending | done>
+start: <YYYY-MM-DD, optional>
+due: <YYYY-MM-DD, optional>
+priority: <low | normal | high>
+remind: <YYYY-MM-DD HH:MM, optional: when to send me a notification>
+notes: <one line, optional>
+- [ ] <step>
+- [x] <step already done>
+
+Rules: keep titles short and unique; reuse the exact same title when updating a task I already have; break each task into small concrete steps in the order I should do them; write in the language we are using. Today is ${isoLocal(new Date())}.`;
+function copyImportPrompt(){
+  navigator.clipboard.writeText(IMPORT_PROMPT).then(() => toast('Instructions copied. Paste them into your chat.'), () => {
+    const ta = document.getElementById('importText'); ta.value = IMPORT_PROMPT; ta.select(); toast('Copy the instructions from the box, then clear it.');
+  });
+}
+function openImport(){
+  document.getElementById('importText').value = '';
+  previewImport();
+  document.getElementById('importOverlay').classList.add('open');
+}
+function normDate(v){
+  v = String(v || '').trim(); if(!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+function normRemind(v){
+  const d = normDate(v); if(!d) return d;
+  const tm = String(v).match(/(\d{1,2}):(\d{2})/);
+  return new Date(`${d}T${tm ? tm[1].padStart(2,'0') + ':' + tm[2] : '09:00'}`).toISOString();
+}
+// Đọc kế hoạch: JSON (danh sách task) hoặc Markdown ("## Tiêu đề", "key: value", "- [ ] bước").
+function parsePlan(text){
+  text = String(text || '').replace(/```[a-z]*\n?/gi, '').trim();
+  if(!text) return [];
+  if(/^[\[{]/.test(text)){
+    let data = JSON.parse(text); if(!Array.isArray(data)) data = data.tasks || [data];
+    return data.map(t => ({ ...t, steps: (t.steps || []).map(x => typeof x === 'string' ? { title: x, done: false } : x) }));
+  }
+  const tasks = []; let cur = null, topic = '';
+  const keys = { topic: 'topic', project: 'topic', status: 'status', start: 'start', due: 'due', deadline: 'due', priority: 'priority', remind: 'remindAt', reminder: 'remindAt', notes: 'notes', note: 'notes' };
+  for(const raw of text.split(/\r?\n/)){
+    const line = raw.trim(); if(!line) continue;
+    let m;
+    if((m = line.match(/^#\s+(.+)/)) && !line.startsWith('##')){ topic = m[1].trim(); continue; }
+    if((m = line.match(/^#{2,}\s+(.+)/))){ cur = { title: m[1].replace(/\*\*/g, '').trim(), steps: [] }; if(topic) cur.topic = topic; tasks.push(cur); continue; }
+    if(!cur) continue;
+    if((m = line.match(/^[-*+]\s*\[([ xX✓✔])\]\s*(.+)/))){ cur.steps.push({ title: m[2].trim(), done: m[1] !== ' ' }); continue; }
+    if((m = line.match(/^(\d+[.)]|[-*+])\s+(.+)/))){ cur.steps.push({ title: m[2].trim(), done: false }); continue; }
+    if((m = line.match(/^\**([A-Za-z]+)\**\s*:\s*(.*)$/)) && keys[m[1].toLowerCase()]){ const v = m[2].trim(); if(v) cur[keys[m[1].toLowerCase()]] = v; continue; }
+    cur.notes = (cur.notes ? cur.notes + '\n' : '') + line;
+  }
+  return tasks;
+}
+let importTasksParsed = [];
+function previewImport(){
+  const box = document.getElementById('importPreview'), btn = document.getElementById('importBtn');
+  importTasksParsed = []; btn.disabled = true;
+  let list;
+  try { list = parsePlan(document.getElementById('importText').value); }
+  catch(e){ box.innerHTML = `<div class="note" style="color:var(--blocked)">Could not read this text: ${esc(e.message)}</div>`; return; }
+  if(!list.length){ box.innerHTML = document.getElementById('importText').value.trim() ? `<div class="note">No tasks found. Each task must start with a line like <b>## Task title</b>.</div>` : ''; return; }
+  const problems = [];
+  list.forEach(t => {
+    for(const k of ['start', 'due']) if(t[k]){ const d = normDate(t[k]); if(d === null) problems.push(`“${t.title}”: can't read ${k} date “${t[k]}”`); t[k] = d || ''; }
+    if(t.remindAt){ const r = normRemind(t.remindAt); if(r === null) problems.push(`“${t.title}”: can't read remind time`); t.remindAt = r || ''; }
+  });
+  const existing = new Set(tasks.map(t => t.title.toLowerCase()));
+  box.innerHTML = `<div class="card" style="max-height:260px;overflow:auto">${list.map(t => `<div class="imp-row">
+      <span class="imp-tag ${existing.has(t.title.trim().toLowerCase()) ? 'upd' : ''}">${existing.has(t.title.trim().toLowerCase()) ? 'update' : 'new'}</span><b>${esc(t.title)}</b>
+      <div class="task-meta">${t.status ? `<span>${esc(t.status)}</span>` : ''}${t.topic ? `<span>${esc(t.topic)}</span>` : ''}${t.due ? `<span>due ${fmtDate(t.due)}</span>` : ''}${t.remindAt ? `<span>⏰ ${fmtRemind(t.remindAt)}</span>` : ''}${t.steps.length ? `<span>☑ ${t.steps.filter(x => x.done).length}/${t.steps.length} steps</span>` : ''}</div></div>`).join('')}</div>
+    ${problems.length ? `<div class="note" style="color:var(--blocked)">${problems.map(esc).join('<br>')}</div>` : ''}`;
+  importTasksParsed = list; btn.disabled = !!problems.length;
+}
+async function doImport(){
+  if(!importTasksParsed.length) return;
+  const r = await mutate(() => TT.importTasks(importTasksParsed));
+  if(r){ closeOverlay('importOverlay'); toast(`Imported: ${r.created} new, ${r.updated} updated, ${r.steps} steps.`); }
+}
+
+// ---------- calendar reminders ----------
+function googleCalLink(t){
+  const d = t.due.replace(/-/g, ''), next = addDays(t.due, 1).replace(/-/g, '');
+  const details = [t.topic ? `Topic: ${t.topic}` : '', t.notes, location.origin + location.pathname].filter(Boolean).join('\n\n');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+    '&text=' + encodeURIComponent('📌 ' + t.title) + '&dates=' + d + '/' + next + '&details=' + encodeURIComponent(details);
+}
+async function openCalendarModal(){
+  const input = document.getElementById('calUrl');
+  input.value = 'Loading…';
+  document.getElementById('calOverlay').classList.add('open');
+  renderPushBox();
+  try { input.value = await TT.calendarUrl(false); }
+  catch(e){ input.value = ''; handleError(e); }
+}
+async function copyCalUrl(){
+  const input = document.getElementById('calUrl');
+  if(!/^https:/.test(input.value)) return;
+  try { await navigator.clipboard.writeText(input.value); }
+  catch(e){ input.select(); document.execCommand('copy'); }
+  toast('Link copied.');
+}
+async function resetCalUrl(){
+  if(!confirm('Create a new link? The current link will stop working and you will need to subscribe again.')) return;
+  try { document.getElementById('calUrl').value = await TT.calendarUrl(true); toast('New link created. Subscribe again with it.'); }
+  catch(e){ handleError(e); }
+}
+
+// ---------- push notifications ----------
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function pushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function deviceLabel(){
+  const ua = navigator.userAgent;
+  const os = isIOS ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'Mac' : 'Device';
+  const br = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+  return `${os} · ${br}`;
+}
+function b64ToBytes(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); const bin = atob(s + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(bin, c => c.charCodeAt(0)); }
+async function currentSubscription(){
+  if(!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+async function renderPushBox(){
+  const box = document.getElementById('pushBox');
+  if(!pushSupported()){
+    box.innerHTML = isIOS && !isStandalone
+      ? `On iPhone/iPad, notifications only work from the Home Screen app:<ol class="steps" style="margin-bottom:0"><li>In Safari, tap <b>Share</b> → <b>Add to Home Screen</b>.</li><li>Open <b>My Tracker</b> from the new icon, sign in, and come back here.</li></ol>`
+      : 'This browser does not support notifications. Try Chrome, Edge, Firefox, or Safari (iPhone: from the Home Screen).';
+    return;
+  }
+  box.textContent = 'Checking…';
+  try {
+    const [st, sub] = await Promise.all([TT.pushStatus(), currentSubscription()]);
+    const here = sub && st.devices.some(d => d.endpoint === sub.endpoint);
+    const others = st.devices.filter(d => !sub || d.endpoint !== sub.endpoint);
+    const denied = Notification.permission === 'denied';
+    box.innerHTML = (here
+        ? `<b>✅ On for this device.</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" onclick="testPush()">Send a test</button><button class="btn btn-ghost" onclick="disablePush()">Turn off here</button></div>`
+        : denied
+          ? `<b>Notifications are blocked</b> for this site. Allow them in your browser/site settings, then reopen this window.`
+          : `<b>Off for this device.</b><div style="margin-top:8px"><button class="btn" onclick="enablePush()">Turn on notifications</button></div>`) +
+      (others.length ? `<div style="margin-top:10px;font-size:12px">Also on: ${others.map(d => esc(d.label || 'device')).join(', ')} <a href="#" onclick="removeOtherDevices();return false">remove</a></div>` : '');
+  } catch(e){ box.textContent = ''; handleError(e); }
+}
+async function enablePush(){
+  try {
+    if(await Notification.requestPermission() !== 'granted'){ toast('Notifications were not allowed.'); renderPushBox(); return; }
+    const reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const { publicKey } = await TT.pushStatus();
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+    await TT.pushSubscribe(sub.toJSON(), deviceLabel());
+    toast('Notifications are on. Sending a test…');
+    await TT.pushTest();
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function disablePush(){
+  try {
+    const sub = await currentSubscription();
+    if(sub){ await TT.pushUnsubscribe(sub.endpoint); await sub.unsubscribe(); }
+    toast('Notifications are off on this device.');
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function removeOtherDevices(){
+  if(!confirm('Stop notifications on all other devices?')) return;
+  try {
+    const [st, sub] = await Promise.all([TT.pushStatus(), currentSubscription()]);
+    for(const d of st.devices) if(!sub || d.endpoint !== sub.endpoint) await TT.pushUnsubscribe(d.endpoint);
+  } catch(e){ handleError(e); }
+  renderPushBox();
+}
+async function testPush(){
+  try { await TT.pushTest(); toast('Test sent. It should arrive within a few seconds.'); }
+  catch(e){ handleError(e); }
 }
 
 // ---------- log ----------
@@ -629,12 +935,14 @@ document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', (
 }));
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['taskFormOverlay', 'detailOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
 });
 // Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
 document.addEventListener('visibilitychange', () => {
   if(!document.hidden && !document.body.classList.contains('locked')) refresh().catch(handleError);
 });
+
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 (async function boot(){
   if(!TT.hasSession()){ showLogin(); return; }
