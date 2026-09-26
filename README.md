@@ -26,6 +26,25 @@ Chỉ vào được khi có **mật khẩu**; dữ liệu nằm trên Supabase v
 
 Bấm vào tên task để xem chi tiết và ghi cập nhật; bấm ✎ để sửa hoặc xoá.
 
+## Hai khu vực: 💼 Work và 📚 IELTS
+
+Nút gạt ở đầu trang chuyển giữa **Work** (công việc ở công ty) và **IELTS** (tự học). Task hai bên tách riêng hoàn toàn; trang nhớ bạn đang ở khu vực nào.
+
+**📚 IELTS** có các tab:
+
+| Tab | Dùng để |
+|---|---|
+| **Overview** | Ghi nhanh một buổi học; biểu đồ 14 ngày; phút học theo kỹ năng trong tuần; task học đang làm / sắp đến hạn; cài đặt band mục tiêu và giờ nhắc |
+| **Study plan** | Task học (theo kỹ năng), có bước, deadline, giờ nhắc, **Import plan** từ chat giống phần Work |
+| **Calendar** | Task học theo ngày |
+| **Study log** | Nhật ký các buổi học theo tháng, tổng giờ theo kỹ năng |
+| **Test scores** | Ghi điểm L/R/W/S mỗi lần làm đề; Overall tự tính theo cách làm tròn của IELTS; biểu đồ tiến bộ so với band mục tiêu |
+| **Vocabulary** | Sổ từ vựng; **Review** ôn thẻ theo lịch ôn lặp (Again / Hard / Good / Easy, phím tắt Space rồi 1–4); **Import words** từ chat (`word \| meaning \| example \| topic`) |
+
+Các ô trên cùng: chuỗi ngày học liên tiếp 🔥, số giờ học tuần này, số từ cần ôn, điểm Overall gần nhất, band mục tiêu.
+
+**Nhắc học buổi tối**: nếu đến giờ đã đặt (mặc định 20:00) mà hôm đó chưa ghi buổi học nào, bạn nhận thông báo kèm chuỗi ngày học, số từ cần ôn và bước học tiếp theo. Bật/tắt và đổi giờ ở *Overview → Settings*. Bản tổng hợp 8:00 sáng chỉ tính task Work.
+
 ## Các bước trong task và nhập kế hoạch từ chat
 
 - Mở một task để thấy danh sách **Steps**: tick khi xong, nhấp đúp để đổi tên, ✕ để xoá, gõ vào *Add a step…* để thêm. Tick bước đầu tiên sẽ tự chuyển task sang *In progress*. Thanh tiến độ và số ☑ 2/5 hiện ở danh sách task.
@@ -98,6 +117,7 @@ Rồi đăng nhập bằng mật khẩu tạm đó và đổi lại mật khẩu
   - Mật khẩu lưu dạng bcrypt, không bao giờ nằm trong repo.
 - Thông báo: pg_cron chạy `me_push_tick()` mỗi phút; khi có việc cần nhắc, hàm này gọi Edge Function `push` (mã trong `supabase/functions/push/index.ts`) để gửi Web Push. Khoá VAPID bí mật chỉ nằm trong bảng `me_push_config`, không có trong repo. Service worker: `sw.js`.
 - Link lịch: Edge Function `calendar` (mã trong `supabase/functions/calendar/index.ts`), tạo file ICS từ hàm `me_calendar_feed`, chỉ trả dữ liệu khi đúng mã lịch.
+- IELTS: bảng `me_study` (buổi học), `me_tests` (điểm), `me_vocab` (từ vựng, ôn lặp kiểu Leitner: 1, 2, 4, 7, 15, 30, 60, 120 ngày); task có cột `space` (`work` / `ielts`).
 - Dữ liệu của Team Tracker cũ (bảng `tasks`, `members`, …) vẫn còn nguyên trên Supabase, trang mới không dùng tới.
 - **Không** đưa file `.sql`, file sao lưu hay mật khẩu lên repo, vì repo đang công khai. `config.js` chỉ chứa khoá **publishable**.
 - Lịch *Keep Supabase awake* trong tab Actions chạy mỗi sáng để Supabase (gói Free) không bị tạm dừng.

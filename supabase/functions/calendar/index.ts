@@ -5,7 +5,7 @@
 const SITE = "https://immi1201.github.io/Team_Tracker/";
 const STATUS: Record<string, string> = { todo: "Not started", progress: "In progress", pending: "Pending", done: "Done" };
 
-type Task = { id: number; title: string; notes: string; topic: string; status: string; priority: string; start: string | null; due: string; updatedAt: string };
+type Task = { id: number; title: string; notes: string; topic: string; status: string; space?: string; priority: string; start: string | null; due: string; updatedAt: string };
 
 function esc(s: string) {
   return String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H",
   ];
   for (const t of tasks) {
-    const flag = t.priority === "high" ? "❗ " : "";
+    const flag = (t.space === "ielts" ? "📚 " : "") + (t.priority === "high" ? "❗ " : "");
     // Sự kiện cả ngày vào ngày deadline: nhắc 9:00 hôm trước và 8:00 sáng hôm đó.
     lines.push(...event(`task-${t.id}`, t.due, `${flag}📌 ${t.title}`, t, [
       alarm(":-PT15H", `Tomorrow: ${t.title}`),

@@ -167,7 +167,55 @@
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; display: none; max-width: calc(100% - 32px); }
   .toast.show { display: block; }
 
+  /* ---------- SPACES + IELTS ---------- */
+  .space-switch { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-bottom: 16px; }
+  .space-switch button { font: inherit; font-size: 14px; font-weight: 600; border: none; background: none; padding: 7px 16px; border-radius: 999px; cursor: pointer; color: var(--ink-soft); }
+  .space-switch button.active { background: var(--primary); color: #fff; }
+  body.space-work .tab-btn[data-space="ielts"], body.space-ielts .tab-btn[data-space="work"] { display: none; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .panel h3 { font-size: 15px; margin: 0 0 10px; }
+  .hbar { display: grid; grid-template-columns: 90px 1fr 56px; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 6px; }
+  .hbar .track { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+  .hbar .fill { height: 100%; background: var(--primary); border-radius: 0 4px 4px 0; }
+  .hbar .val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); text-align: right; }
+  .days14 { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; align-items: end; height: 70px; }
+  .days14 .d { background: var(--primary); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+  .days14 .d.zero { background: var(--line); }
+  .days14-lbl { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; font-size: 10px; color: var(--ink-soft); text-align: center; font-family: 'IBM Plex Mono', monospace; margin-top: 4px; }
+  .inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .inline-form .field { margin-bottom: 0; flex: 1 1 120px; }
+  .inline-form .field.wide { flex: 3 1 220px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th, .tbl td { padding: 9px 10px; border-top: 1px solid var(--line); text-align: left; }
+  .tbl th { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; color: var(--ink-soft); font-weight: 500; border-top: none; }
+  .tbl td.num, .tbl th.num { text-align: center; font-family: 'IBM Plex Mono', monospace; }
+  .tbl .overall { font-weight: 700; }
+  .tbl-wrap { overflow-x: auto; }
+  .chart-wrap { position: relative; }
+  .chart-tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; display: none; transform: translate(-50%, calc(-100% - 10px)); }
+  .word { padding: 10px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+  .word:first-child { border-top: none; }
+  .word .term { font-weight: 600; }
+  .word .meaning { font-size: 14px; }
+  .word .example { font-size: 13px; color: var(--ink-soft); font-style: italic; }
+  .boxdots { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .boxdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); display: inline-block; }
+  .boxdots i.on { background: var(--done); }
+  .flash { text-align: center; padding: 26px 10px; }
+  .flash .term { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin-bottom: 14px; word-break: break-word; }
+  .flash .meaning { font-size: 18px; margin-bottom: 8px; }
+  .flash .example { color: var(--ink-soft); font-style: italic; }
+  .grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+  .grades .btn { padding: 10px 6px; }
+  .grades small { display: block; font-weight: 400; font-size: 11px; opacity: .8; }
+  .btn-again { background: var(--blocked); border-color: var(--blocked); }
+  .btn-hard { background: var(--progress); border-color: var(--progress); }
+  .btn-easy { background: var(--done); border-color: var(--done); }
+
   @media (max-width: 720px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .hbar { grid-template-columns: 76px 1fr 50px; }
     .app { padding: 20px 16px 60px; }
     header h1 { font-size: 28px; }
     .stats { grid-template-columns: repeat(3, 1fr); }
@@ -198,7 +246,7 @@
 <div class="app">
   <header>
     <div>
-      <p class="eyebrow">Personal · Tasks</p>
+      <p class="eyebrow" id="eyebrow">Personal · Work</p>
       <h1>My Tracker</h1>
     </div>
     <div class="header-actions">
@@ -211,19 +259,22 @@
     </div>
   </header>
 
-  <div class="stats">
-    <div class="stat"><span class="num" id="statOpen">0</span><span class="lbl">Open</span></div>
-    <div class="stat st-progress"><span class="num" id="statProgress">0</span><span class="lbl">In progress</span></div>
-    <div class="stat st-pending"><span class="num" id="statPending">0</span><span class="lbl">Pending</span></div>
-    <div class="stat st-overdue"><span class="num" id="statOverdue">0</span><span class="lbl">Overdue</span></div>
-    <div class="stat st-done"><span class="num" id="statDone">0</span><span class="lbl">Done this month</span></div>
+  <div class="space-switch" role="tablist" aria-label="Area">
+    <button data-space-btn="work" onclick="switchSpace('work')">💼 Work</button>
+    <button data-space-btn="ielts" onclick="switchSpace('ielts')">📚 IELTS</button>
   </div>
 
+  <div class="stats" id="stats"></div>
+
   <div class="tabs" role="tablist">
-    <button class="tab-btn active" data-view="today">Today</button>
-    <button class="tab-btn" data-view="tasks">All tasks</button>
+    <button class="tab-btn active" data-view="today" data-space="work">Today</button>
+    <button class="tab-btn" data-view="ielts-home" data-space="ielts">Overview</button>
+    <button class="tab-btn" data-view="tasks" id="tabTasks">All tasks</button>
     <button class="tab-btn" data-view="calendar">Calendar</button>
-    <button class="tab-btn" data-view="log">Log</button>
+    <button class="tab-btn" data-view="log" data-space="work">Log</button>
+    <button class="tab-btn" data-view="ielts-study" data-space="ielts">Study log</button>
+    <button class="tab-btn" data-view="ielts-tests" data-space="ielts">Test scores</button>
+    <button class="tab-btn" data-view="ielts-vocab" data-space="ielts">Vocabulary</button>
   </div>
 
   <!-- TODAY -->
@@ -289,6 +340,108 @@
     </div>
     <div class="card" id="logList"></div>
   </div>
+
+  <!-- IELTS: OVERVIEW -->
+  <div class="view" id="view-ielts-home">
+    <div class="panel" style="margin-bottom:18px">
+      <h3>Log a study session</h3>
+      <form class="inline-form" onsubmit="addStudyQuick(event)">
+        <div class="field"><label for="qsSkill">Skill</label><select id="qsSkill" class="skill-select"></select></div>
+        <div class="field"><label for="qsMin">Minutes</label><input type="number" id="qsMin" min="1" max="600" value="30" required></div>
+        <div class="field wide"><label for="qsNote">What did you do? (optional)</label><input id="qsNote" maxlength="300" placeholder="e.g. Cambridge 18 Test 2 Listening"></div>
+        <button class="btn" type="submit">+ Log</button>
+      </form>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h3>Last 14 days <span class="toolbar-note mono" id="days14Total" style="font-weight:400;font-size:12px;color:var(--ink-soft)"></span></h3>
+        <div class="days14" id="days14"></div><div class="days14-lbl" id="days14Lbl"></div></div>
+      <div class="panel"><h3>This week by skill</h3><div id="weekSkills"></div></div>
+    </div>
+    <div id="ieltsTasksHome"></div>
+    <div class="panel">
+      <h3>Settings</h3>
+      <form class="inline-form" onsubmit="saveIeltsSettings(event)">
+        <div class="field"><label for="setTarget">Target band</label><select id="setTarget"></select></div>
+        <div class="field"><label for="setRemind">Evening reminder</label><select id="setRemind"><option value="1">On</option><option value="0">Off</option></select></div>
+        <div class="field"><label for="setTime">Reminder time</label><input type="time" id="setTime" value="20:00"></div>
+        <button class="btn btn-ghost" type="submit">Save</button>
+      </form>
+      <p style="font-size:12px;color:var(--ink-soft);margin:10px 0 0">If you have not logged any study by the reminder time, you get a notification with your streak, words to review and your next IELTS step. Turn on notifications in 🔔 Reminders.</p>
+    </div>
+  </div>
+
+  <!-- IELTS: STUDY LOG -->
+  <div class="view" id="view-ielts-study">
+    <div class="panel" style="margin-bottom:18px">
+      <form class="inline-form" onsubmit="addStudyFull(event)">
+        <div class="field"><label for="slDay">Date</label><input type="date" id="slDay" required></div>
+        <div class="field"><label for="slSkill">Skill</label><select id="slSkill" class="skill-select"></select></div>
+        <div class="field"><label for="slMin">Minutes</label><input type="number" id="slMin" min="1" max="600" value="30" required></div>
+        <div class="field wide"><label for="slNote">Note</label><input id="slNote" maxlength="300"></div>
+        <button class="btn" type="submit">+ Log</button>
+      </form>
+    </div>
+    <div class="toolbar"><h2>History</h2><select id="slMonth" onchange="renderStudyLog()" style="width:auto"></select></div>
+    <div class="panel" style="margin-bottom:14px"><h3>Total this month <span class="mono" id="slMonthTotal" style="font-weight:400;font-size:12px;color:var(--ink-soft)"></span></h3><div id="slMonthSkills"></div></div>
+    <div class="card" id="slList"></div>
+  </div>
+
+  <!-- IELTS: TEST SCORES -->
+  <div class="view" id="view-ielts-tests">
+    <div class="panel" style="margin-bottom:18px">
+      <h3 id="testFormTitle">Add a practice test</h3>
+      <form class="inline-form" onsubmit="saveTestForm(event)">
+        <input type="hidden" id="tsId">
+        <div class="field"><label for="tsDay">Date</label><input type="date" id="tsDay" required></div>
+        <div class="field wide"><label for="tsSource">Test</label><input id="tsSource" maxlength="120" placeholder="e.g. Cambridge 18 Test 1"></div>
+        <div class="field"><label for="tsL">Listening</label><select id="tsL" class="band-select"></select></div>
+        <div class="field"><label for="tsR">Reading</label><select id="tsR" class="band-select"></select></div>
+        <div class="field"><label for="tsW">Writing</label><select id="tsW" class="band-select"></select></div>
+        <div class="field"><label for="tsS">Speaking</label><select id="tsS" class="band-select"></select></div>
+        <div class="field wide"><label for="tsNote">Note</label><input id="tsNote" maxlength="300" placeholder="What to improve next time"></div>
+        <button class="btn" type="submit">Save</button>
+        <button class="btn btn-ghost" type="button" id="tsCancel" onclick="resetTestForm()" hidden>Cancel</button>
+      </form>
+      <p style="font-size:12px;color:var(--ink-soft);margin:8px 0 0">Leave a skill empty if you did not take it. Overall is calculated when all four are filled (IELTS rounding).</p>
+    </div>
+    <div class="panel" style="margin-bottom:18px">
+      <h3>Overall band over time</h3>
+      <div class="chart-wrap" id="testChartWrap"><div id="testChart"></div><div class="chart-tip" id="testTip"></div></div>
+    </div>
+    <div class="card tbl-wrap" id="testTable"></div>
+  </div>
+
+  <!-- IELTS: VOCABULARY -->
+  <div class="view" id="view-ielts-vocab">
+    <div class="panel" style="margin-bottom:18px">
+      <div class="toolbar" style="margin-bottom:10px">
+        <h3 style="margin:0" id="vocabHead">Vocabulary</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="reviewBtn" onclick="startReview()">Review</button>
+          <button class="btn btn-ghost" onclick="openVocabImport()">📋 Import words</button>
+        </div>
+      </div>
+      <form class="inline-form" onsubmit="saveWordForm(event)">
+        <input type="hidden" id="vwId">
+        <div class="field"><label for="vwTerm">Word / phrase</label><input id="vwTerm" maxlength="120" required></div>
+        <div class="field wide"><label for="vwMeaning">Meaning</label><input id="vwMeaning" maxlength="300"></div>
+        <div class="field wide"><label for="vwExample">Example</label><input id="vwExample" maxlength="300"></div>
+        <div class="field"><label for="vwTags">Topic</label><input id="vwTags" maxlength="60" placeholder="e.g. environment"></div>
+        <button class="btn" type="submit" id="vwSave">+ Add</button>
+        <button class="btn btn-ghost" type="button" id="vwCancel" onclick="resetWordForm()" hidden>Cancel</button>
+      </form>
+    </div>
+    <div class="toolbar">
+      <div class="filters">
+        <input type="search" id="vwSearch" placeholder="Search words…" oninput="renderVocab()">
+        <select id="vwFilter" onchange="renderVocab()">
+          <option value="all">All words</option><option value="due">Due for review</option>
+          <option value="learning">Learning</option><option value="mastered">Mastered</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" id="vocabList"></div>
+  </div>
 </div>
 
 <!-- TASK FORM -->
@@ -298,7 +451,7 @@
     <input type="hidden" id="tId">
     <div class="field"><label for="tTitle">Title</label><input id="tTitle" required maxlength="300"></div>
     <div class="row2">
-      <div class="field"><label for="tTopic">Topic / project</label><input id="tTopic" list="topicList" maxlength="100"><datalist id="topicList"></datalist></div>
+      <div class="field"><label for="tTopic" id="tTopicLabel">Topic / project</label><input id="tTopic" list="topicList" maxlength="100"><datalist id="topicList"></datalist></div>
       <div class="field"><label for="tPriority">Priority</label>
         <select id="tPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
     </div>
@@ -339,6 +492,32 @@
         <button class="btn" id="importBtn" onclick="doImport()" disabled>Import</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- VOCAB REVIEW -->
+<div class="overlay" id="reviewOverlay" onclick="if(event.target===this)endReview()">
+  <div class="modal" style="max-width:480px">
+    <div class="toolbar" style="margin-bottom:0"><h2 style="margin:0">Review</h2><span class="mono" id="reviewCount" style="font-size:12px;color:var(--ink-soft)"></span></div>
+    <div class="progress-bar"><div id="reviewProgress" style="width:0"></div></div>
+    <div id="reviewCard"></div>
+    <div class="modal-actions"><div class="right"><button class="btn btn-ghost" onclick="endReview()">Close</button></div></div>
+  </div>
+</div>
+
+<!-- VOCAB IMPORT -->
+<div class="overlay" id="vocabImportOverlay" onclick="if(event.target===this)closeOverlay('vocabImportOverlay')">
+  <div class="modal" style="max-width:600px">
+    <h2>📋 Import words</h2>
+    <p style="font-size:14px;margin-top:-6px">One word per line: <code>word | meaning | example | topic</code> (meaning, example, topic optional). A word you already have is updated, not duplicated.</p>
+    <p><button class="btn btn-ghost" style="padding:4px 10px" onclick="copyVocabPrompt()">Copy instructions for the chat</button> <span style="font-size:13px;color:var(--ink-soft)">e.g. “give me 20 useful words for IELTS Writing Task 2 about environment”</span></p>
+    <div class="field"><label for="vocabImportText">Words</label>
+      <textarea id="vocabImportText" rows="10" style="font-family:'IBM Plex Mono',monospace;font-size:12px" oninput="previewVocabImport()" placeholder="mitigate | giảm nhẹ | Governments must mitigate the effects of climate change. | environment"></textarea></div>
+    <div id="vocabImportPreview" style="font-size:13px;color:var(--ink-soft)"></div>
+    <div class="modal-actions"><div class="right">
+      <button class="btn btn-ghost" onclick="closeOverlay('vocabImportOverlay')">Cancel</button>
+      <button class="btn" id="vocabImportBtn" onclick="doVocabImport()" disabled>Import</button>
+    </div></div>
   </div>
 </div>
 
@@ -409,7 +588,9 @@
 
 const STATUS = { todo: 'Not started', progress: 'In progress', pending: 'Pending', done: 'Done' };
 const PRIORITY_RANK = { high: 0, normal: 1, low: 2 };
-let tasks = [], updates = [], today = isoLocal(new Date());
+let tasks = [], allTasks = [], updates = [], ielts = { study: [], tests: [], vocab: [] }, today = isoLocal(new Date());
+let space = (() => { try { return localStorage.getItem('myTracker:space') === 'ielts' ? 'ielts' : 'work'; } catch(e){ return 'work'; } })();
+const SKILLS = { listening: 'Listening', reading: 'Reading', writing: 'Writing', speaking: 'Speaking', vocabulary: 'Vocabulary', grammar: 'Grammar', other: 'Other' };
 let calView = new Date(); calView.setDate(1);
 let openDetailId = null;
 
@@ -431,7 +612,9 @@ function topics(){ return [...new Set(tasks.map(t => t.topic).filter(Boolean))].
 // ---------- data ----------
 async function refresh(){
   const st = await TT.loadState();
-  tasks = st.tasks || []; updates = st.updates || []; today = st.today || isoLocal(new Date());
+  allTasks = st.tasks || []; updates = st.updates || []; today = st.today || isoLocal(new Date());
+  tasks = allTasks.filter(t => (t.space || 'work') === space);
+  ielts = st.ielts || { study: [], tests: [], vocab: [] };
   renderAll();
   return st;
 }
@@ -470,7 +653,7 @@ async function submitLogin(ev){
   } catch(e){ err.textContent = e.message; }
   finally { btn.disabled = false; }
 }
-async function doLogout(){ await TT.signOut(); tasks = []; updates = []; showLogin(); }
+async function doLogout(){ await TT.signOut(); tasks = []; allTasks = []; updates = []; ielts = { study: [], tests: [], vocab: [] }; showLogin(); }
 function openPasswordModal(forced){
   ['pwCurrent','pwNew','pwNew2'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pwError').textContent = '';
@@ -501,7 +684,9 @@ function openTaskForm(id, preset){
   document.getElementById('tNotes').value = t ? t.notes : '';
   document.getElementById('tRemind').value = t && t.remindAt ? toLocalInput(t.remindAt) : '';
   document.getElementById('tDelete').hidden = !t;
-  document.getElementById('topicList').innerHTML = topics().map(x => `<option value="${esc(x)}">`).join('');
+  document.getElementById('tTopicLabel').textContent = space === 'ielts' ? 'Skill' : 'Topic / project';
+  const sugg = space === 'ielts' ? [...new Set(['Listening', 'Reading', 'Writing', 'Speaking', 'Vocabulary', 'Grammar', ...topics()])] : topics();
+  document.getElementById('topicList').innerHTML = sugg.map(x => `<option value="${esc(x)}">`).join('');
   closeOverlay('detailOverlay');
   document.getElementById('taskFormOverlay').classList.add('open');
   setTimeout(() => document.getElementById('tTitle').focus(), 50);
@@ -517,7 +702,8 @@ async function saveTaskForm(ev){
     due: document.getElementById('tDue').value,
     status: document.getElementById('tStatus').value,
     notes: document.getElementById('tNotes').value,
-    remindAt: document.getElementById('tRemind').value ? new Date(document.getElementById('tRemind').value).toISOString() : ''
+    remindAt: document.getElementById('tRemind').value ? new Date(document.getElementById('tRemind').value).toISOString() : '',
+    space
   };
   if(!task.title) return;
   if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
@@ -643,12 +829,17 @@ notes: <one line, optional>
 - [x] <step already done>
 
 Rules: keep titles short and unique; reuse the exact same title when updating a task I already have; break each task into small concrete steps in the order I should do them; write in the language we are using. Today is ${isoLocal(new Date())}.`;
+const IMPORT_PROMPT_IELTS = IMPORT_PROMPT
+  .replace('for my task tracker', 'for my IELTS self-study tracker')
+  .replace('topic: <project or area, optional>', 'topic: <Listening | Reading | Writing | Speaking | Vocabulary | Grammar>')
+  .replace('Rules:', 'Rules: one task per study goal or week (e.g. "Listening: Cambridge 18 Tests 1-2"), steps are single study sessions;');
 function copyImportPrompt(){
-  navigator.clipboard.writeText(IMPORT_PROMPT).then(() => toast('Instructions copied. Paste them into your chat.'), () => {
+  navigator.clipboard.writeText(space === 'ielts' ? IMPORT_PROMPT_IELTS : IMPORT_PROMPT).then(() => toast('Instructions copied. Paste them into your chat.'), () => {
     const ta = document.getElementById('importText'); ta.value = IMPORT_PROMPT; ta.select(); toast('Copy the instructions from the box, then clear it.');
   });
 }
 function openImport(){
+  document.querySelector('#importOverlay h2').textContent = space === 'ielts' ? '📋 Import IELTS study plan' : '📋 Import plan';
   document.getElementById('importText').value = '';
   previewImport();
   document.getElementById('importOverlay').classList.add('open');
@@ -709,7 +900,7 @@ function previewImport(){
 }
 async function doImport(){
   if(!importTasksParsed.length) return;
-  const r = await mutate(() => TT.importTasks(importTasksParsed));
+  const r = await mutate(() => TT.importTasks(importTasksParsed, space));
   if(r){ closeOverlay('importOverlay'); toast(`Imported: ${r.created} new, ${r.updated} updated, ${r.steps} steps.`); }
 }
 
@@ -833,14 +1024,25 @@ async function addLog(){
 async function deleteLog(id){ if(confirm('Delete this entry?')) await mutate(() => TT.deleteUpdate(id)); }
 
 // ---------- render ----------
+function stat(num, lbl, cls){ return `<div class="stat ${cls || ''}"><span class="num">${num}</span><span class="lbl">${lbl}</span></div>`; }
 function renderStats(){
+  const el = document.getElementById('stats');
+  if(space === 'ielts'){
+    const last = ielts.tests.filter(t => overallBand(t) != null).slice(-1)[0];
+    el.innerHTML = stat(`${streak()}${streak() ? ' 🔥' : ''}`, 'Day streak', 'st-overdue') +
+      stat(fmtMinutes(weekMinutes()), 'Studied this week', 'st-progress') +
+      stat(dueWords().length, 'Words to review', 'st-pending') +
+      stat(last ? overallBand(last).toFixed(1) : '—', 'Latest overall', 'st-done') +
+      stat(ielts.target != null ? Number(ielts.target).toFixed(1) : '—', 'Target band');
+    return;
+  }
   const open = tasks.filter(t => t.status !== 'done');
   const month = today.slice(0, 7);
-  document.getElementById('statOpen').textContent = open.length;
-  document.getElementById('statProgress').textContent = tasks.filter(t => t.status === 'progress').length;
-  document.getElementById('statPending').textContent = tasks.filter(t => t.status === 'pending').length;
-  document.getElementById('statOverdue').textContent = open.filter(isOverdue).length;
-  document.getElementById('statDone').textContent = tasks.filter(t => t.doneAt && t.doneAt.slice(0, 7) === month).length;
+  el.innerHTML = stat(open.length, 'Open') +
+    stat(tasks.filter(t => t.status === 'progress').length, 'In progress', 'st-progress') +
+    stat(tasks.filter(t => t.status === 'pending').length, 'Pending', 'st-pending') +
+    stat(open.filter(isOverdue).length, 'Overdue', 'st-overdue') +
+    stat(tasks.filter(t => t.doneAt && t.doneAt.slice(0, 7) === month).length, 'Done this month', 'st-done');
 }
 function renderToday(){
   const open = tasks.filter(t => t.status !== 'done');
@@ -910,12 +1112,320 @@ function renderLog(){
   const months = [...new Set([today.slice(0, 7), ...updates.map(u => isoLocal(new Date(u.at)).slice(0, 7))])].sort().reverse();
   monthSel.innerHTML = months.map(x => `<option value="${x}">${x.slice(5)}/${x.slice(0, 4)}</option>`).join('');
   monthSel.value = months.includes(curMonth) ? curMonth : months[0];
-  const list = updates.filter(u => isoLocal(new Date(u.at)).slice(0, 7) === monthSel.value);
+  const workIds = new Set(tasks.map(t => t.id));
+  const list = updates.filter(u => (u.taskId == null || workIds.has(u.taskId)) && isoLocal(new Date(u.at)).slice(0, 7) === monthSel.value);
   document.getElementById('logList').innerHTML = list.length ? list.map(logItem).join('') : '<div class="empty">No entries this month.</div>';
 }
 function renderAll(){
+  applySpace();
   renderStats(); renderToday(); renderTopicFilter(); renderTasks(); renderCalendar(); renderLog();
+  renderIeltsHome(); renderStudyLog(); renderTests(); renderVocab();
   if(openDetailId) renderDetail();
+}
+
+// ---------- spaces (Work / IELTS) ----------
+function applySpace(){
+  document.body.classList.toggle('space-ielts', space === 'ielts');
+  document.body.classList.toggle('space-work', space !== 'ielts');
+  document.querySelectorAll('[data-space-btn]').forEach(b => b.classList.toggle('active', b.dataset.spaceBtn === space));
+  document.getElementById('eyebrow').textContent = space === 'ielts' ? 'Personal · IELTS self-study' : 'Personal · Work';
+  document.getElementById('tabTasks').textContent = space === 'ielts' ? 'Study plan' : 'All tasks';
+  const active = document.querySelector('.tab-btn.active');
+  if(!active || getComputedStyle(active).display === 'none') showTab(space === 'ielts' ? 'ielts-home' : 'today');
+}
+function switchSpace(s){
+  if(s === space) return;
+  space = s;
+  try { localStorage.setItem('myTracker:space', s); } catch(e){ /* bỏ qua */ }
+  tasks = allTasks.filter(t => (t.space || 'work') === space);
+  document.getElementById('fTopic').value = '';
+  showTab(space === 'ielts' ? 'ielts-home' : 'today');
+  renderAll();
+}
+function showTab(view){
+  document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  if(view === 'ielts-tests') renderTestChart();   // vẽ lại theo bề rộng thật khi tab hiện ra
+}
+
+// ---------- IELTS helpers ----------
+const BANDS = Array.from({ length: 19 }, (_, i) => (i * 0.5).toFixed(1)).reverse();
+function overallBand(t){
+  const v = [t.listening, t.reading, t.writing, t.speaking];
+  if(v.some(x => x == null)) return null;
+  const avg = v.reduce((a, b) => a + Number(b), 0) / 4;
+  return Math.floor(avg * 2 + 0.5) / 2;   // IELTS: .25 lên .5, .75 lên số nguyên
+}
+function fmtMinutes(m){ m = Math.round(m || 0); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}`; }
+function studyDays(){ return new Set(ielts.study.map(s => s.day)); }
+function streak(){
+  const days = studyDays(); let d = today, n = 0;
+  if(!days.has(d)) d = addDays(d, -1);
+  while(days.has(d)){ n++; d = addDays(d, -1); }
+  return n;
+}
+function weekStart(){ const [y, m, d] = today.split('-').map(Number); const dow = (new Date(y, m - 1, d).getDay() + 6) % 7; return addDays(today, -dow); }
+function weekMinutes(){ const ws = weekStart(); return ielts.study.filter(s => s.day >= ws && s.day <= today).reduce((a, s) => a + s.minutes, 0); }
+function dueWords(){ return ielts.vocab.filter(w => w.due <= today); }
+function skillBars(list){
+  const by = {}; list.forEach(s => by[s.skill] = (by[s.skill] || 0) + s.minutes);
+  const max = Math.max(1, ...Object.values(by));
+  const rows = Object.keys(SKILLS).filter(k => by[k]);
+  return rows.length ? rows.map(k => `<div class="hbar" title="${SKILLS[k]}: ${fmtMinutes(by[k])}"><span>${SKILLS[k]}</span><div class="track"><div class="fill" style="width:${by[k] / max * 100}%"></div></div><span class="val">${fmtMinutes(by[k])}</span></div>`).join('')
+    : '<div style="font-size:13px;color:var(--ink-soft)">Nothing logged yet.</div>';
+}
+function fillSelects(){
+  document.querySelectorAll('.skill-select').forEach(sel => { if(!sel.options.length) sel.innerHTML = Object.entries(SKILLS).map(([k, v]) => `<option value="${k}">${v}</option>`).join(''); });
+  document.querySelectorAll('.band-select').forEach(sel => { if(!sel.options.length) sel.innerHTML = '<option value="">—</option>' + BANDS.map(b => `<option>${b}</option>`).join(''); });
+  const tgt = document.getElementById('setTarget');
+  if(!tgt.options.length) tgt.innerHTML = '<option value="">Not set</option>' + BANDS.filter(b => b >= 4).map(b => `<option>${b}</option>`).join('');
+}
+
+// ---------- IELTS: overview ----------
+function renderIeltsHome(){
+  fillSelects();
+  const days = []; for(let i = 13; i >= 0; i--) days.push(addDays(today, -i));
+  const per = {}; ielts.study.forEach(s => per[s.day] = (per[s.day] || 0) + s.minutes);
+  const max = Math.max(30, ...days.map(d => per[d] || 0));
+  document.getElementById('days14').innerHTML = days.map(d => `<div class="d ${per[d] ? '' : 'zero'}" style="height:${(per[d] || 0) / max * 100}%" title="${fmtDate(d)}: ${fmtMinutes(per[d] || 0)}"></div>`).join('');
+  document.getElementById('days14Lbl').innerHTML = days.map(d => `<span>${d === today ? '•' : Number(d.slice(8))}</span>`).join('');
+  document.getElementById('days14Total').textContent = fmtMinutes(days.reduce((a, d) => a + (per[d] || 0), 0));
+  const ws = weekStart();
+  document.getElementById('weekSkills').innerHTML = skillBars(ielts.study.filter(s => s.day >= ws && s.day <= today));
+  const open = tasks.filter(t => t.status !== 'done');
+  const soon = open.filter(t => t.due && t.due <= addDays(today, 7)).sort(byDue);
+  const doing = open.filter(t => t.status === 'progress' && !soon.includes(t)).sort(byDue);
+  document.getElementById('ieltsTasksHome').innerHTML = (section('📌 Due soon', soon) + section('▶ In progress', doing)) ||
+    `<div class="panel" style="margin-bottom:18px;font-size:14px">No study plan yet. <a href="#" onclick="openImport();return false">Import a plan from chat</a> or <a href="#" onclick="openTaskForm();return false">add a task</a>.</div>`;
+  if(document.activeElement && document.activeElement.closest && document.activeElement.closest('#view-ielts-home form')) return;
+  document.getElementById('setTarget').value = ielts.target != null ? Number(ielts.target).toFixed(1) : '';
+  document.getElementById('setRemind').value = ielts.remind === false ? '0' : '1';
+  document.getElementById('setTime').value = ielts.remindTime || '20:00';
+}
+async function addStudyQuick(ev){
+  ev.preventDefault();
+  const min = Number(document.getElementById('qsMin').value);
+  if(await mutate(() => TT.addStudy(today, document.getElementById('qsSkill').value, min, document.getElementById('qsNote').value.trim()))){
+    document.getElementById('qsNote').value = '';
+    toast(`Logged ${fmtMinutes(min)}. Streak: ${streak()} day${streak() === 1 ? '' : 's'} 🔥`);
+  }
+}
+async function saveIeltsSettings(ev){
+  ev.preventDefault();
+  const tgt = document.getElementById('setTarget').value;
+  if(await mutate(() => TT.ieltsSettings(tgt ? Number(tgt) : null, document.getElementById('setRemind').value === '1', document.getElementById('setTime').value || '20:00'))) toast('Settings saved.');
+}
+
+// ---------- IELTS: study log ----------
+function renderStudyLog(){
+  const dayEl = document.getElementById('slDay'); if(!dayEl.value) dayEl.value = today;
+  const monthSel = document.getElementById('slMonth'), cur = monthSel.value || today.slice(0, 7);
+  const months = [...new Set([today.slice(0, 7), ...ielts.study.map(s => s.day.slice(0, 7))])].sort().reverse();
+  monthSel.innerHTML = months.map(x => `<option value="${x}">${x.slice(5)}/${x.slice(0, 4)}</option>`).join('');
+  monthSel.value = months.includes(cur) ? cur : months[0];
+  const list = ielts.study.filter(s => s.day.slice(0, 7) === monthSel.value);
+  document.getElementById('slMonthTotal').textContent = `${fmtMinutes(list.reduce((a, s) => a + s.minutes, 0))} · ${new Set(list.map(s => s.day)).size} days`;
+  document.getElementById('slMonthSkills').innerHTML = skillBars(list);
+  document.getElementById('slList').innerHTML = list.length ? list.map(s => `<div class="log-item"><div>
+      <div class="log-when">${fmtDate(s.day)} · ${fmtMinutes(s.minutes)}</div>
+      <div class="log-body"><b>${SKILLS[s.skill]}</b>${s.note ? ' — ' + esc(s.note) : ''}</div></div>
+      <button class="icon-btn" onclick="deleteStudy(${s.id})" title="Delete" aria-label="Delete">✕</button></div>`).join('')
+    : '<div class="empty">No study sessions this month.</div>';
+}
+async function addStudyFull(ev){
+  ev.preventDefault();
+  if(await mutate(() => TT.addStudy(document.getElementById('slDay').value, document.getElementById('slSkill').value,
+      Number(document.getElementById('slMin').value), document.getElementById('slNote').value.trim()))){
+    document.getElementById('slNote').value = ''; toast('Session logged.');
+  }
+}
+async function deleteStudy(id){ if(confirm('Delete this session?')) await mutate(() => TT.deleteStudy(id)); }
+
+// ---------- IELTS: test scores ----------
+function renderTests(){
+  const dayEl = document.getElementById('tsDay'); if(!dayEl.value) dayEl.value = today;
+  const list = ielts.tests;
+  const target = ielts.target != null ? Number(ielts.target) : null;
+  const cell = v => v == null ? '<td class="num">—</td>' : `<td class="num">${Number(v).toFixed(1)}</td>`;
+  document.getElementById('testTable').innerHTML = list.length ? `<table class="tbl"><thead><tr><th>Date</th><th>Test</th><th class="num">L</th><th class="num">R</th><th class="num">W</th><th class="num">S</th><th class="num">Overall</th><th></th></tr></thead><tbody>
+    ${list.slice().reverse().map(t => { const o = overallBand(t); return `<tr><td>${fmtDate(t.day)}</td><td>${esc(t.source)}${t.note ? `<div style="font-size:12px;color:var(--ink-soft)">${esc(t.note)}</div>` : ''}</td>
+      ${cell(t.listening)}${cell(t.reading)}${cell(t.writing)}${cell(t.speaking)}<td class="num overall">${o == null ? '—' : o.toFixed(1)}${o != null && target != null ? (o >= target ? ' ✓' : '') : ''}</td>
+      <td style="white-space:nowrap"><button class="icon-btn" onclick="editTest(${t.id})" title="Edit" aria-label="Edit">✎</button><button class="icon-btn" onclick="deleteTest(${t.id})" title="Delete" aria-label="Delete">✕</button></td></tr>`; }).join('')}
+    </tbody></table>` : '<div class="empty">No practice tests yet.</div>';
+  renderTestChart();
+}
+// Biểu đồ đường: một chuỗi (Overall) + đường mục tiêu nét đứt. Di chuột vào điểm để xem điểm từng kỹ năng.
+function renderTestChart(){
+  const pts = ielts.tests.map(t => ({ t, o: overallBand(t) })).filter(p => p.o != null);
+  const box = document.getElementById('testChart');
+  if(pts.length < 1){ box.innerHTML = '<div style="font-size:13px;color:var(--ink-soft)">Add a test with all four skills to see your progress.</div>'; return; }
+  const W = Math.max(280, box.clientWidth || 600), H = 220, L = 34, R = 14, T = 12, B = 28;
+  const target = ielts.target != null ? Number(ielts.target) : null;
+  const vals = pts.map(p => p.o).concat(target != null ? [target] : []);
+  const lo = Math.max(0, Math.floor(Math.min(...vals)) - 1), hi = Math.min(9, Math.ceil(Math.max(...vals)) + 0.5);
+  const x = i => pts.length === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (pts.length - 1);
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  let g = '';
+  for(let v = Math.ceil(lo); v <= hi; v++) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace">${v}</text>`;
+  if(target != null) g += `<line x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}" stroke="var(--brick)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${L + 6}" y="${y(target) - 6}" font-size="11" fill="var(--ink-soft)">Target ${target.toFixed(1)}</text>`;
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.o)}`).join(' ');
+  g += `<path d="${path}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach((p, i) => {
+    g += `<circle cx="${x(i)}" cy="${y(p.o)}" r="4.5" fill="var(--primary)" stroke="var(--surface)" stroke-width="2"/>
+      <circle cx="${x(i)}" cy="${y(p.o)}" r="14" fill="transparent" data-i="${i}" class="tip-hit" style="cursor:pointer"/>`;
+    if(i === pts.length - 1 || pts.length <= 6) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace">${fmtDate(p.t.day).slice(0, 5)}</text>`;
+  });
+  const last = pts[pts.length - 1];
+  const ly = target != null && Math.abs(y(last.o) - y(target)) < 14 ? y(last.o) + 18 : y(last.o) - 9;
+  g += `<text x="${x(pts.length - 1)}" y="${ly}" text-anchor="${pts.length > 1 ? 'end' : 'middle'}" dx="${pts.length > 1 ? -6 : 0}" font-size="12" font-weight="600" fill="var(--ink)">${last.o.toFixed(1)}</text>`;
+  box.innerHTML = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Overall band over time">${g}</svg>`;
+  const tip = document.getElementById('testTip'), wrap = document.getElementById('testChartWrap');
+  box.querySelectorAll('.tip-hit').forEach(c => {
+    const show = () => {
+      const p = pts[Number(c.dataset.i)], t = p.t, r = c.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+      tip.innerHTML = `<b>${esc(t.source || fmtDate(t.day))}</b> · ${fmtDate(t.day)}<br>Overall ${p.o.toFixed(1)} · L ${t.listening} · R ${t.reading} · W ${t.writing} · S ${t.speaking}`;
+      tip.style.left = (r.left + r.width / 2 - wr.left) + 'px'; tip.style.top = (r.top + r.height / 2 - wr.top) + 'px'; tip.style.display = 'block';
+    };
+    c.addEventListener('mouseenter', show); c.addEventListener('click', show);
+    c.addEventListener('mouseleave', () => tip.style.display = 'none');
+  });
+}
+function resetTestForm(){
+  ['tsId', 'tsSource', 'tsNote', 'tsL', 'tsR', 'tsW', 'tsS'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tsDay').value = today;
+  document.getElementById('testFormTitle').textContent = 'Add a practice test';
+  document.getElementById('tsCancel').hidden = true;
+}
+function editTest(id){
+  const t = ielts.tests.find(x => x.id === id); if(!t) return;
+  document.getElementById('tsId').value = t.id; document.getElementById('tsDay').value = t.day;
+  document.getElementById('tsSource').value = t.source; document.getElementById('tsNote').value = t.note;
+  [['tsL', 'listening'], ['tsR', 'reading'], ['tsW', 'writing'], ['tsS', 'speaking']].forEach(([el, k]) => document.getElementById(el).value = t[k] == null ? '' : Number(t[k]).toFixed(1));
+  document.getElementById('testFormTitle').textContent = 'Edit practice test';
+  document.getElementById('tsCancel').hidden = false;
+  document.getElementById('tsSource').focus();
+}
+async function saveTestForm(ev){
+  ev.preventDefault();
+  const v = id => document.getElementById(id).value;
+  const t = { id: v('tsId'), day: v('tsDay'), source: v('tsSource').trim(), note: v('tsNote').trim(), listening: v('tsL'), reading: v('tsR'), writing: v('tsW'), speaking: v('tsS') };
+  if(!t.listening && !t.reading && !t.writing && !t.speaking){ toast('Enter at least one score.'); return; }
+  if(await mutate(() => TT.saveTest(t))){
+    const o = overallBand(t);
+    resetTestForm(); toast(o != null ? `Saved. Overall ${o.toFixed(1)}.` : 'Saved.');
+  }
+}
+async function deleteTest(id){ if(confirm('Delete this test?')) await mutate(() => TT.deleteTest(id)); }
+
+// ---------- IELTS: vocabulary ----------
+function boxDots(b){ let h = ''; for(let i = 0; i < 7; i++) h += `<i class="${i < b ? 'on' : ''}"></i>`; return `<span class="boxdots" title="Level ${b}/7">${h}</span>`; }
+function renderVocab(){
+  const due = dueWords().length;
+  document.getElementById('vocabHead').textContent = `Vocabulary · ${ielts.vocab.length} words`;
+  const rb = document.getElementById('reviewBtn'); rb.textContent = due ? `Review ${due} due` : 'Nothing to review'; rb.disabled = !due;
+  const q = document.getElementById('vwSearch').value.trim().toLowerCase(), f = document.getElementById('vwFilter').value;
+  const list = ielts.vocab.filter(w =>
+    (f === 'all' || (f === 'due' ? w.due <= today : f === 'mastered' ? w.box >= 5 : w.box < 5)) &&
+    (!q || (w.term + ' ' + w.meaning + ' ' + w.example + ' ' + w.tags).toLowerCase().includes(q)));
+  document.getElementById('vocabList').innerHTML = list.length ? list.map(w => `<div class="word"><div>
+      <div><span class="term">${esc(w.term)}</span> ${boxDots(w.box)} ${w.tags ? `<span class="chip">${esc(w.tags)}</span>` : ''} ${w.due <= today ? '<span class="chip soon">due</span>' : `<span class="chip" title="Next review">${fmtDate(w.due).slice(0, 5)}</span>`}</div>
+      ${w.meaning ? `<div class="meaning">${esc(w.meaning)}</div>` : ''}${w.example ? `<div class="example">${esc(w.example)}</div>` : ''}</div>
+      <div style="white-space:nowrap"><button class="icon-btn" onclick="editWord(${w.id})" title="Edit" aria-label="Edit">✎</button><button class="icon-btn" onclick="deleteWord(${w.id})" title="Delete" aria-label="Delete">✕</button></div></div>`).join('')
+    : `<div class="empty">${ielts.vocab.length ? 'No words match.' : 'No words yet. Add one above or import a list from chat.'}</div>`;
+}
+function resetWordForm(){
+  ['vwId', 'vwTerm', 'vwMeaning', 'vwExample', 'vwTags'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('vwSave').textContent = '+ Add'; document.getElementById('vwCancel').hidden = true;
+}
+function editWord(id){
+  const w = ielts.vocab.find(x => x.id === id); if(!w) return;
+  document.getElementById('vwId').value = w.id; document.getElementById('vwTerm').value = w.term;
+  document.getElementById('vwMeaning').value = w.meaning; document.getElementById('vwExample').value = w.example; document.getElementById('vwTags').value = w.tags;
+  document.getElementById('vwSave').textContent = 'Save'; document.getElementById('vwCancel').hidden = false;
+  document.getElementById('vwTerm').focus();
+}
+async function saveWordForm(ev){
+  ev.preventDefault();
+  const v = id => document.getElementById(id).value.trim();
+  const w = { id: v('vwId'), term: v('vwTerm'), meaning: v('vwMeaning'), example: v('vwExample'), tags: v('vwTags') };
+  if(!w.term) return;
+  if(await mutate(() => TT.saveWord(w))){ resetWordForm(); document.getElementById('vwTerm').focus(); }
+}
+async function deleteWord(id){ if(confirm('Delete this word?')) await mutate(() => TT.deleteWord(id)); }
+
+let reviewQueue = [], reviewIdx = 0, reviewShown = false, reviewDone = 0;
+function startReview(){
+  reviewQueue = dueWords().slice().sort(() => Math.random() - 0.5).slice(0, 50);
+  if(!reviewQueue.length) return;
+  reviewIdx = 0; reviewDone = 0; reviewShown = false;
+  document.getElementById('reviewOverlay').classList.add('open');
+  renderReview();
+}
+function renderReview(){
+  const card = document.getElementById('reviewCard');
+  document.getElementById('reviewCount').textContent = `${Math.min(reviewIdx + 1, reviewQueue.length)} / ${reviewQueue.length}`;
+  document.getElementById('reviewProgress').style.width = (reviewIdx / reviewQueue.length * 100) + '%';
+  if(reviewIdx >= reviewQueue.length){
+    card.innerHTML = `<div class="flash"><div class="term">🎉 Done!</div><div class="meaning">You reviewed ${reviewDone} word${reviewDone === 1 ? '' : 's'}.</div></div>`;
+    return;
+  }
+  const w = reviewQueue[reviewIdx];
+  card.innerHTML = `<div class="flash"><div class="term">${esc(w.term)}</div>
+    ${reviewShown ? `<div class="meaning">${esc(w.meaning) || '<span style="color:var(--ink-soft)">(no meaning saved)</span>'}</div>${w.example ? `<div class="example">${esc(w.example)}</div>` : ''}` : '<div style="color:var(--ink-soft);font-size:14px">Try to recall the meaning, then check.</div>'}</div>
+    ${reviewShown ? `<div class="grades">
+      <button class="btn btn-again" onclick="gradeWord('again')">Again<small>forgot</small></button>
+      <button class="btn btn-hard" onclick="gradeWord('hard')">Hard<small>struggled</small></button>
+      <button class="btn" onclick="gradeWord('good')">Good<small>remembered</small></button>
+      <button class="btn btn-easy" onclick="gradeWord('easy')">Easy<small>instantly</small></button></div>`
+    : `<button class="btn btn-block" onclick="reviewShown=true;renderReview()">Show answer</button>`}`;
+}
+async function gradeWord(grade){
+  const w = reviewQueue[reviewIdx];
+  try { await TT.reviewWord(w.id, grade); }
+  catch(e){ handleError(e); return; }
+  reviewDone++;
+  if(grade === 'again') reviewQueue.push(w);   // ôn lại trong lượt này
+  reviewIdx++; reviewShown = false; renderReview();
+}
+async function endReview(){
+  closeOverlay('reviewOverlay');
+  if(reviewDone) await refresh().catch(handleError);
+}
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('reviewOverlay').classList.contains('open') || e.target.matches('input, textarea, select')) return;
+  if(!reviewShown && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); reviewShown = true; renderReview(); }
+  else if(reviewShown && ['1', '2', '3', '4'].includes(e.key)) gradeWord(['again', 'hard', 'good', 'easy'][Number(e.key) - 1]);
+});
+
+const VOCAB_PROMPT = `Give me IELTS vocabulary for my flashcards. Reply ONLY with a code block, one word or phrase per line, in exactly this format:
+word | meaning (in Vietnamese) | natural example sentence | topic
+No numbering, no extra text. Prefer collocations and phrases useful for IELTS band 7+.`;
+function copyVocabPrompt(){
+  navigator.clipboard.writeText(VOCAB_PROMPT).then(() => toast('Instructions copied. Paste them into your chat with your request.'), () => {
+    const ta = document.getElementById('vocabImportText'); ta.value = VOCAB_PROMPT; ta.select(); toast('Copy the instructions from the box, then clear it.');
+  });
+}
+function openVocabImport(){ document.getElementById('vocabImportText').value = ''; previewVocabImport(); document.getElementById('vocabImportOverlay').classList.add('open'); }
+function parseWords(text){
+  return String(text || '').replace(/```[a-z]*\n?/gi, '').split(/\r?\n/).map(l => l.replace(/^\s*(\d+[.)]|[-*•])\s*/, '').trim()).filter(Boolean).map(l => {
+    let parts = l.split('|');
+    if(parts.length === 1) parts = l.split(/\s+[–—-]\s+|\t|:\s+/);
+    const [term, meaning, example, tags] = parts.map(x => (x || '').trim());
+    return { term: term.replace(/\*\*/g, ''), meaning: meaning || '', example: example || '', tags: tags || '' };
+  }).filter(w => w.term && w.term.length <= 120);
+}
+let vocabParsed = [];
+function previewVocabImport(){
+  vocabParsed = parseWords(document.getElementById('vocabImportText').value);
+  const have = new Set(ielts.vocab.map(w => w.term.toLowerCase()));
+  const upd = vocabParsed.filter(w => have.has(w.term.toLowerCase())).length;
+  document.getElementById('vocabImportPreview').innerHTML = vocabParsed.length
+    ? `${vocabParsed.length} words: ${vocabParsed.length - upd} new, ${upd} already in your list. First: <b>${esc(vocabParsed[0].term)}</b>${vocabParsed[0].meaning ? ' — ' + esc(vocabParsed[0].meaning) : ''}` : '';
+  document.getElementById('vocabImportBtn').disabled = !vocabParsed.length;
+}
+async function doVocabImport(){
+  const r = await mutate(() => TT.importWords(vocabParsed));
+  if(r){ closeOverlay('vocabImportOverlay'); toast(`Imported: ${r.created} new, ${r.updated} updated.`); }
 }
 
 function exportCsv(){
@@ -929,13 +1439,12 @@ function exportCsv(){
 }
 
 // ---------- boot ----------
-document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.tab-btn').forEach(x => x.classList.toggle('active', x === b));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + b.dataset.view));
-}));
+document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.view)));
+window.addEventListener('resize', () => { clearTimeout(window.__rz); window.__rz = setTimeout(() => { if(!document.body.classList.contains('locked')) renderTestChart(); }, 200); });
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+  if(document.getElementById('reviewOverlay').classList.contains('open')){ endReview(); return; }
+  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay', 'vocabImportOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
 });
 // Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
 document.addEventListener('visibilitychange', () => {
