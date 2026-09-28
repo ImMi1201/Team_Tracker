@@ -66,6 +66,21 @@ notes: Một dòng ghi chú
 - [ ] Bước tiếp theo
 ```
 
+## Báo cáo điều tra (Word)
+
+Dành cho task ở khu vực **Work**. Báo cáo theo mẫu *Full Scale OOS Investigation Report* (SOP-LA-A008-FORM06/06), toàn bộ bằng tiếng Anh.
+
+1. **Ghi kết quả từng bước**: mở task, bấm 📝 cạnh một bước, ghi những gì bạn điều tra được, bấm **Save note**. Ghi chú hiện ngay dưới bước (bấm vào để sửa).
+2. **Tạo báo cáo**: khi chuyển task sang **Done**, web hỏi có tạo báo cáo không; hoặc mở task bất cứ lúc nào và bấm **📄 Report**.
+3. Điền các ô (No., Product, Lot, Test item, Specification, OOS content, Result, Conclusion, đánh giá QA, người ký…). Ghi chú của từng bước cũng sửa được ngay ở đây.
+4. Bấm **⬇ Download Word** để tải file `.docx`, hoặc **Save draft** để lưu và làm tiếp sau.
+
+Trong file Word:
+- Mỗi bước là một mục trong *Investigation Result*, nội dung là ghi chú của bước (kèm ngày hoàn thành).
+- Bảng kết quả thử nghiệm có một dòng cho mỗi lô, chừa chỗ chèn ảnh.
+- Ô chưa điền hiện *[Enter here]* màu xám để bạn điền tiếp trong Word.
+- Tên người ký được nhớ cho các báo cáo sau.
+
 ## Thông báo nhắc việc (web tự nhắc)
 
 Bấm **🔔 Reminders → Turn on notifications** trên từng thiết bị muốn nhận thông báo (điện thoại, máy tính). Thông báo hiện cả khi đã đóng trang:
@@ -117,6 +132,7 @@ Rồi đăng nhập bằng mật khẩu tạm đó và đổi lại mật khẩu
   - Mật khẩu lưu dạng bcrypt, không bao giờ nằm trong repo.
 - Thông báo: pg_cron chạy `me_push_tick()` mỗi phút; khi có việc cần nhắc, hàm này gọi Edge Function `push` (mã trong `supabase/functions/push/index.ts`) để gửi Web Push. Khoá VAPID bí mật chỉ nằm trong bảng `me_push_config`, không có trong repo. Service worker: `sw.js`.
 - Link lịch: Edge Function `calendar` (mã trong `supabase/functions/calendar/index.ts`), tạo file ICS từ hàm `me_calendar_feed`, chỉ trả dữ liệu khi đúng mã lịch.
+- Báo cáo Word: `lib/report.js` (dùng thư viện `docx`, tải từ jsDelivr khi bấm tải); dữ liệu báo cáo ở cột `me_tasks.report`, ghi chú bước ở `me_steps.note`, tên người ký mặc định ở `me_auth.report_defaults`.
 - IELTS: bảng `me_study` (buổi học), `me_tests` (điểm), `me_vocab` (từ vựng, ôn lặp kiểu Leitner: 1, 2, 4, 7, 15, 30, 60, 120 ngày); task có cột `space` (`work` / `ielts`).
 - Dữ liệu của Team Tracker cũ (bảng `tasks`, `members`, …) vẫn còn nguyên trên Supabase, trang mới không dùng tới.
 - **Không** đưa file `.sql`, file sao lưu hay mật khẩu lên repo, vì repo đang công khai. `config.js` chỉ chứa khoá **publishable**.
