@@ -144,6 +144,18 @@
   .imp-row:first-child { border-top: none; }
   .imp-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--done-bg); color: var(--done); margin-right: 6px; }
   .imp-tag.upd { background: var(--progress-bg); color: var(--progress); }
+  .task.child { padding-left: 38px; background: #FBFAF7; }
+  .task.child .task-title { font-size: 14px; }
+  .tree-toggle { background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 11px; padding: 1px 6px; margin-right: 6px; color: var(--ink-soft); vertical-align: 1px; }
+  .chip.parent { background: var(--primary-soft); color: var(--primary); }
+  .phase { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 9px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+  .phase:first-child { border-top: none; }
+  .phase .t { cursor: pointer; font-weight: 500; }
+  .phase .t:hover { color: var(--primary); text-decoration: underline; }
+  .phase.is-done .t { color: var(--ink-soft); text-decoration: line-through; }
+  .sec-btn { font: inherit; font-size: 12px; font-weight: 500; background: none; border: 1px dashed var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; color: var(--ink-soft); margin-left: 8px; }
+  .sec-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .rp-phase { font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
   .step-wrap { border-top: 1px solid var(--line); }
   .step-wrap:first-child { border-top: none; }
   .step-wrap .step { border-top: none; }
@@ -477,6 +489,7 @@
       <select id="tStatus"><option value="todo">Not started</option><option value="progress">In progress</option><option value="pending">Pending</option><option value="done">Done</option></select></div>
     <div class="field"><label for="tRemind">Remind me at (optional notification)</label>
       <div style="display:flex;gap:8px"><input type="datetime-local" id="tRemind"><button type="button" class="btn btn-ghost" onclick="document.getElementById('tRemind').value=''">Clear</button></div></div>
+    <div class="field" id="tParentField"><label for="tParent">Part of (parent task)</label><select id="tParent"></select></div>
     <div class="field"><label for="tNotes">Notes</label><textarea id="tNotes" rows="4"></textarea></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="tDelete" onclick="deleteTaskFromForm()">Delete</button>
@@ -673,6 +686,13 @@ function fmtDateTime(ts){ return new Date(ts).toLocaleString('en-GB', { day:'2-d
 function toLocalInput(ts){ const d = new Date(ts); return `${isoLocal(d)}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function fmtRemind(ts){ const d = new Date(ts); return `${fmtDate(isoLocal(d)).slice(0,5)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
 function taskById(id){ return tasks.find(t => t.id === id); }
+// Task cha / giai đoạn (một cấp)
+function childrenOf(id){ return tasks.filter(t => t.parentId === id).sort((a, b) => a.id - b.id); }
+function hasChildren(t){ return tasks.some(c => c.parentId === t.id); }
+function leafTasks(){ return tasks.filter(t => !hasChildren(t)); }
+function parentOf(t){ return t && t.parentId ? taskById(t.parentId) : null; }
+const expandedParents = new Set();
+function toggleParent(id){ if(expandedParents.has(id)) expandedParents.delete(id); else expandedParents.add(id); renderTasks(); }
 function isOverdue(t){ return t.status !== 'done' && t.due && t.due < today; }
 function toast(msg){ const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 3500); }
 function setSync(text, err){ const el = document.getElementById('sync'); el.textContent = text; el.classList.toggle('err', !!err); }
@@ -753,6 +773,11 @@ function openTaskForm(id, preset){
   document.getElementById('tDue').value = t ? (t.due || '') : ((preset && preset.due) || '');
   document.getElementById('tStatus').value = t ? t.status : 'todo';
   document.getElementById('tNotes').value = t ? t.notes : '';
+  const parSel = document.getElementById('tParent');
+  const parents = tasks.filter(x => !x.parentId && (!t || x.id !== t.id) && (x.status !== 'done' || (t && t.parentId === x.id)));
+  parSel.innerHTML = '<option value="">— None (a task on its own) —</option>' + parents.sort((a, b) => a.title.localeCompare(b.title)).map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('');
+  parSel.value = t && t.parentId ? String(t.parentId) : (preset && preset.parentId ? String(preset.parentId) : '');
+  document.getElementById('tParentField').hidden = !!(t && hasChildren(t));
   document.getElementById('tRemind').value = t && t.remindAt ? toLocalInput(t.remindAt) : '';
   document.getElementById('tDelete').hidden = !t;
   document.getElementById('tTopicLabel').textContent = space === 'ielts' ? 'Skill' : 'Topic / project';
@@ -776,6 +801,7 @@ async function saveTaskForm(ev){
     remindAt: document.getElementById('tRemind').value ? new Date(document.getElementById('tRemind').value).toISOString() : '',
     space
   };
+  if(!document.getElementById('tParentField').hidden) task.parentId = document.getElementById('tParent').value;
   if(!task.title) return;
   if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
   const wasDone = task.id ? (taskById(Number(task.id)) || {}).status === 'done' : false;
@@ -785,16 +811,26 @@ async function saveTaskForm(ev){
 async function deleteTaskFromForm(){
   const id = Number(document.getElementById('tId').value);
   const t = taskById(id);
-  if(!t || !confirm(`Delete "${t.title}" and all of its updates?`)) return;
+  const nk = childrenOf(id).length;
+  if(!t || !confirm(nk ? `Delete "${t.title}" AND its ${nk} phases (with their steps and updates)?` : `Delete "${t.title}" and all of its updates?`)) return;
   if(await mutate(() => TT.deleteTask(id))) closeOverlay('taskFormOverlay');
 }
 async function changeStatus(id, status){
   const wasDone = (taskById(id) || {}).status === 'done';
   if(await mutate(() => TT.setStatus(id, status))) offerReport(id, status, wasDone);
 }
-function offerReport(id, status, wasDone){
+async function offerReport(id, status, wasDone){
   const t = taskById(id);
   if(!t || status !== 'done' || wasDone || (t.space || 'work') !== 'work') return;
+  const par = parentOf(t);
+  if(par){
+    // Giai đoạn cuối cùng xong → đề nghị đóng task cha và làm báo cáo
+    if(par.status !== 'done' && childrenOf(par.id).every(c => c.status === 'done') &&
+       confirm(`🎉 All phases of "${par.title}" are done!\n\nMark it done and create the investigation report (Word) now?`)){
+      if(await mutate(() => TT.setStatus(par.id, 'done'))) openReport(par.id);
+    }
+    return;
+  }
   if(confirm(`🎉 "${t.title}" is done!\n\nCreate the investigation report (Word) now?`)) openReport(id);
 }
 
@@ -807,15 +843,19 @@ function dueChip(t){
   if(diff <= 3) return `<span class="chip soon">due in ${diff}d · ${fmtDate(t.due)}</span>`;
   return `<span class="chip">due ${fmtDate(t.due)}</span>`;
 }
-function taskRow(t){
+function taskRow(t, o){
+  o = o || {};
   const n = updates.filter(u => u.taskId === t.id).length;
   const opts = Object.entries(STATUS).map(([k,v]) => `<option value="${k}" ${t.status===k?'selected':''}>${v}</option>`).join('');
-  return `<div class="task ${t.status==='done'?'is-done':''}">
+  const kids = childrenOf(t.id), par = o.showParent ? parentOf(t) : null;
+  return `<div class="task ${t.status==='done'?'is-done':''} ${o.child ? 'child' : ''}">
     <div>
-      <div class="task-title" onclick="openDetail(${t.id})">${esc(t.title)}</div>
+      <div>${kids.length && !o.child ? `<button class="tree-toggle" onclick="toggleParent(${t.id})" title="Show / hide phases" aria-label="Show or hide phases">${expandedParents.has(t.id) ? '▾' : '▸'} ${kids.length}</button>` : ''}<span class="task-title" onclick="openDetail(${t.id})">${esc(t.title)}</span></div>
       <div class="task-meta">
+        ${par ? `<span class="chip parent" title="Part of">↳ ${esc(par.title)}</span>` : ''}
         ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
-        ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
+        ${t.topic && !o.child && !par ? `<span>${esc(t.topic)}</span>` : ''}
+        ${kids.length ? `<span title="Phases done">☑ ${kids.filter(c => c.status === 'done').length}/${kids.length} phases</span>` : ''}
         ${dueChip(t)}
         ${t.remindAt && t.status !== 'done' && new Date(t.remindAt) > new Date() ? `<span title="Reminder">⏰ ${fmtRemind(t.remindAt)}</span>` : ''}
         ${t.steps && t.steps.length ? `<span title="Steps done">☑ ${t.steps.filter(x => x.done).length}/${t.steps.length}</span>` : ''}
@@ -829,8 +869,9 @@ function taskRow(t){
     </div>
   </div>`;
 }
-function section(title, list, emptyText){
+function section(title, list, emptyText, html){
   if(!list.length && !emptyText) return '';
+  if(html != null) return `<div class="section"><h3>${title}<span class="count">${list.length}</span></h3><div class="card">${html}</div></div>`;
   return `<div class="section"><h3>${title}<span class="count">${list.length}</span></h3>
     <div class="card">${list.length ? list.map(taskRow).join('') : `<div class="empty">${emptyText}</div>`}</div></div>`;
 }
@@ -846,13 +887,15 @@ function renderDetail(){
     <h2>${esc(t.title)}</h2>
     <div class="detail-meta">
       <span class="s-${t.status}">● ${STATUS[t.status]}</span>
-      ${t.topic ? `<span>${esc(t.topic)}</span>` : ''}
+      ${t.topic && !t.parentId ? `<span>${esc(t.topic)}</span>` : ''}
       ${t.priority !== 'normal' ? `<span class="chip ${t.priority}">${t.priority}</span>` : ''}
       ${t.start ? `<span>Start ${fmtDate(t.start)}</span>` : ''}
       ${dueChip(t)}
+      ${parentOf(t) ? `<span>↳ Part of <a href="#" onclick="openDetail(${t.parentId});return false">${esc(parentOf(t).title)}</a></span>` : ''}
     </div>
     ${t.notes ? `<div class="detail-notes">${esc(t.notes)}</div>` : ''}
-    ${renderSteps(t)}
+    ${renderPhases(t)}
+    ${hasChildren(t) && !(t.steps || []).length ? '' : renderSteps(t)}
     <div class="field"><label for="dUpdate">Add an update</label><textarea id="dUpdate" placeholder="What's the latest on this task?"></textarea></div>
     <button class="btn" onclick="addDetailUpdate()">Add update</button>
     <h3 style="font-size:15px;margin:20px 0 6px">History</h3>
@@ -863,6 +906,25 @@ function renderDetail(){
       ${t.due ? `<a class="btn btn-ghost" style="text-decoration:none" href="${googleCalLink(t)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a>` : ''}
       <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('detailOverlay')">Close</button></div>
     </div>`;
+}
+function renderPhases(t){
+  if(t.parentId) return '';
+  const kids = childrenOf(t.id);
+  const done = kids.filter(c => c.status === 'done').length;
+  return `${kids.length ? `<h3 style="font-size:15px;margin:0 0 4px">Phases <span class="mono" style="font-weight:400;font-size:12px;color:var(--ink-soft)">${done}/${kids.length}</span></h3>
+    <div class="progress-bar"><div style="width:${Math.round(done / kids.length * 100)}%"></div></div>
+    <div class="card" style="margin-bottom:8px">${kids.map(c => `<div class="phase ${c.status === 'done' ? 'is-done' : ''}">
+      <div><span class="t" onclick="openDetail(${c.id})">${esc(c.title)}</span>
+        <div class="task-meta"><span class="s-${c.status}">● ${STATUS[c.status]}</span>${dueChip(c)}${c.steps.length ? `<span>☑ ${c.steps.filter(x => x.done).length}/${c.steps.length}</span>` : ''}</div></div>
+      <button class="icon-btn" onclick="openDetail(${c.id})" title="Open phase" aria-label="Open phase">›</button></div>`).join('')}</div>` : ''}
+    <form style="display:flex;gap:8px;margin-bottom:16px" onsubmit="addPhase(event, ${t.id})">
+      <input id="newPhase" placeholder="${kids.length ? 'Add a phase…' : 'Add a phase (a sub-task with its own steps and deadline)…'}" maxlength="300"><button class="btn btn-ghost" type="submit">Add phase</button></form>`;
+}
+async function addPhase(ev, parentId){
+  ev.preventDefault();
+  const p = taskById(parentId), title = document.getElementById('newPhase').value.trim();
+  if(!title || !p) return;
+  await mutate(() => TT.saveTask({ title, topic: p.topic, status: 'todo', priority: 'normal', parentId, space: p.space || space }));
 }
 async function addDetailUpdate(){
   const body = document.getElementById('dUpdate').value.trim();
@@ -918,14 +980,19 @@ function openReport(id){
   set('rpNo', r.reportNo); set('rpDate', r.preparedDate || today); set('rpProduct', r.product || t.title); set('rpCode', r.productCode);
   set('rpLots', r.lots); set('rpTest', r.testItem); set('rpSpec', r.specification); set('rpOos', r.oosContent || t.notes);
   set('rpResult', r.result); set('rpStab', r.stabilityPoint); set('rpTestNote', r.testResultNote);
-  set('rpInv', r.investigationContent || (t.steps || []).map(s => s.title).join(', ')); set('rpConcl', r.conclusion);
+  const phases = childrenOf(t.id);
+  set('rpInv', r.investigationContent || (phases.length ? phases : (t.steps || [])).map(s => s.title).join(', ')); set('rpConcl', r.conclusion);
   const imp = r.impact || {};
   document.getElementById('rpImpLot').checked = !!imp.lot; document.getElementById('rpImpProduct').checked = !!imp.product;
   document.getElementById('rpImpProcess').checked = !!imp.process; document.getElementById('rpImpRelease').checked = !!imp.release;
   document.querySelectorAll('input[name=rpCa]').forEach(x => x.checked = x.value === (r.proposeCa || ''));
   set('rpRemarks', r.remarks); set('rpCirc', r.circulateTo); set('rpDocs', r.relatedDocs); set('rpForm', r.formCode || 'SOP-LA-A008-FORM06/06');
-  document.getElementById('rpSteps').innerHTML = (t.steps || []).length ? t.steps.map((s, i) => `<div class="field rp-step"><label for="rpStep${s.id}">${i + 1}. ${esc(s.title)} ${s.done ? '✓' : ''}</label>
-      <textarea id="rpStep${s.id}" data-step="${s.id}" rows="3" placeholder="Findings of this step…">${esc(s.note || '')}</textarea></div>`).join('')
+  const stepFields = (steps, prefix) => steps.map((s, i) => `<div class="field rp-step"><label for="rpStep${s.id}">${prefix}${i + 1}. ${esc(s.title)} ${s.done ? '✓' : ''}</label>
+      <textarea id="rpStep${s.id}" data-step="${s.id}" rows="3" placeholder="Findings of this step…">${esc(s.note || '')}</textarea></div>`).join('');
+  const groups = phases.length ? phases.map((c, i) => ({ title: `${i + 1}. ${c.title}`, steps: c.steps, prefix: `${i + 1}.` })) : [{ title: '', steps: t.steps || [], prefix: '' }];
+  if(phases.length && (t.steps || []).length) groups.push({ title: `${phases.length + 1}. Other steps`, steps: t.steps, prefix: `${phases.length + 1}.` });
+  document.getElementById('rpSteps').innerHTML = groups.some(g => g.steps.length || g.title)
+    ? groups.map(g => (g.title ? `<div class="rp-phase">${esc(g.title)}</div>` : '') + (g.steps.length ? stepFields(g.steps, g.prefix) : (g.title ? '<div class="note" style="margin-top:0">No steps in this phase.</div>' : ''))).join('')
     : '<div class="note">This task has no steps yet. Add steps in the task (or import a plan) — each step becomes a section of the report with its findings.</div>';
   document.getElementById('rpSigners').innerHTML = TTReport.SIGNERS.map(([k, role, title]) => `<div class="field"><label for="rpSig_${k}">${role} — ${title}</label><input id="rpSig_${k}" value="${esc(sig[k] || '')}"></div>`).join('');
   closeOverlay('detailOverlay');
@@ -949,7 +1016,7 @@ async function saveReportForm(download){
   const report = readReportForm();
   const changed = [...document.querySelectorAll('#rpSteps textarea[data-step]')]
     .map(el => ({ id: Number(el.dataset.step), note: el.value }))
-    .filter(x => { const s = t.steps.find(y => y.id === x.id); return s && (s.note || '') !== x.note; });
+    .filter(x => { const s = [t, ...childrenOf(t.id)].flatMap(k => k.steps).find(y => y.id === x.id); return s && (s.note || '') !== x.note; });
   const ok = await mutate(async () => { for(const c of changed) await TT.setStepNote(c.id, c.note); await TT.saveReport(t.id, report); });
   if(!ok) return;
   if(!download){ toast('Report saved.'); return; }
@@ -957,7 +1024,8 @@ async function saveReportForm(download){
   try {
     await TTReport.load();
     const fresh = taskById(reportTaskId) || t;
-    saveBlob(await TTReport.build(fresh, report), TTReport.fileName(fresh, report));
+    const full = Object.assign({}, fresh, { phases: childrenOf(fresh.id) });
+    saveBlob(await TTReport.build(full, report), TTReport.fileName(fresh, report));
     toast('Word file downloaded.');
   } catch(e){ toast(e.message || 'Could not create the Word file.'); }
   finally { btn.disabled = false; btn.textContent = '⬇ Download Word'; }
@@ -980,7 +1048,9 @@ remind: <YYYY-MM-DD HH:MM, optional: when to send me a notification>
 notes: <one line, optional>
 - [ ] <step>
 - [x] <step already done>
+  > <findings of the step so far, optional, one or more lines starting with >>
 
+If the plan is one job with several phases (each with its own deadline), write ONE first line "# <job title>" and then one "##" block per phase — do not repeat the job title in the phases.
 Rules: keep titles short and unique; reuse the exact same title when updating a task I already have; break each task into small concrete steps in the order I should do them; write in the language we are using. Today is ${isoLocal(new Date())}.`;
 const IMPORT_PROMPT_IELTS = IMPORT_PROMPT
   .replace('for my task tracker', 'for my IELTS self-study tracker')
@@ -1016,14 +1086,15 @@ function parsePlan(text){
     let data = JSON.parse(text); if(!Array.isArray(data)) data = data.tasks || [data];
     return data.map(t => ({ ...t, steps: (t.steps || []).map(x => typeof x === 'string' ? { title: x, done: false } : x) }));
   }
-  const tasks = []; let cur = null, topic = '';
+  const tasks = []; let cur = null, parent = '';
   const keys = { topic: 'topic', project: 'topic', status: 'status', start: 'start', due: 'due', deadline: 'due', priority: 'priority', remind: 'remindAt', reminder: 'remindAt', notes: 'notes', note: 'notes' };
   for(const raw of text.split(/\r?\n/)){
     const line = raw.trim(); if(!line) continue;
     let m;
-    if((m = line.match(/^#\s+(.+)/)) && !line.startsWith('##')){ topic = m[1].trim(); continue; }
-    if((m = line.match(/^#{2,}\s+(.+)/))){ cur = { title: m[1].replace(/\*\*/g, '').trim(), steps: [] }; if(topic) cur.topic = topic; tasks.push(cur); continue; }
+    if((m = line.match(/^#\s+(.+)/)) && !line.startsWith('##')){ parent = m[1].replace(/\*\*/g, '').trim(); continue; }
+    if((m = line.match(/^#{2,}\s+(.+)/))){ cur = { title: m[1].replace(/\*\*/g, '').trim(), steps: [] }; if(parent) cur.parent = parent; tasks.push(cur); continue; }
     if(!cur) continue;
+    if((m = line.match(/^>\s*(.*)/)) && cur.steps.length){ const st = cur.steps[cur.steps.length - 1]; st.note = (st.note ? st.note + '\n' : '') + m[1]; continue; }
     if((m = line.match(/^[-*+]\s*\[([ xX✓✔])\]\s*(.+)/))){ cur.steps.push({ title: m[2].trim(), done: m[1] !== ' ' }); continue; }
     if((m = line.match(/^(\d+[.)]|[-*+])\s+(.+)/))){ cur.steps.push({ title: m[2].trim(), done: false }); continue; }
     if((m = line.match(/^\**([A-Za-z]+)\**\s*:\s*(.*)$/)) && keys[m[1].toLowerCase()]){ const v = m[2].trim(); if(v) cur[keys[m[1].toLowerCase()]] = v; continue; }
@@ -1046,7 +1117,7 @@ function previewImport(){
   });
   const existing = new Set(tasks.map(t => t.title.toLowerCase()));
   box.innerHTML = `<div class="card" style="max-height:260px;overflow:auto">${list.map(t => `<div class="imp-row">
-      <span class="imp-tag ${existing.has(t.title.trim().toLowerCase()) ? 'upd' : ''}">${existing.has(t.title.trim().toLowerCase()) ? 'update' : 'new'}</span><b>${esc(t.title)}</b>
+      <span class="imp-tag ${existing.has(t.title.trim().toLowerCase()) ? 'upd' : ''}">${existing.has(t.title.trim().toLowerCase()) ? 'update' : 'new'}</span><b>${esc(t.title)}</b>${t.parent ? ` <span class="chip parent">↳ ${esc(t.parent)}</span>` : ''}
       <div class="task-meta">${t.status ? `<span>${esc(t.status)}</span>` : ''}${t.topic ? `<span>${esc(t.topic)}</span>` : ''}${t.due ? `<span>due ${fmtDate(t.due)}</span>` : ''}${t.remindAt ? `<span>⏰ ${fmtRemind(t.remindAt)}</span>` : ''}${t.steps.length ? `<span>☑ ${t.steps.filter(x => x.done).length}/${t.steps.length} steps</span>` : ''}</div></div>`).join('')}</div>
     ${problems.length ? `<div class="note" style="color:var(--blocked)">${problems.map(esc).join('<br>')}</div>` : ''}`;
   importTasksParsed = list; btn.disabled = !!problems.length;
@@ -1189,25 +1260,26 @@ function renderStats(){
       stat(ielts.target != null ? Number(ielts.target).toFixed(1) : '—', 'Target band');
     return;
   }
-  const open = tasks.filter(t => t.status !== 'done');
+  const leaves = leafTasks(), open = leaves.filter(t => t.status !== 'done');
   const month = today.slice(0, 7);
   el.innerHTML = stat(open.length, 'Open') +
-    stat(tasks.filter(t => t.status === 'progress').length, 'In progress', 'st-progress') +
-    stat(tasks.filter(t => t.status === 'pending').length, 'Pending', 'st-pending') +
+    stat(leaves.filter(t => t.status === 'progress').length, 'In progress', 'st-progress') +
+    stat(leaves.filter(t => t.status === 'pending').length, 'Pending', 'st-pending') +
     stat(open.filter(isOverdue).length, 'Overdue', 'st-overdue') +
-    stat(tasks.filter(t => t.doneAt && t.doneAt.slice(0, 7) === month).length, 'Done this month', 'st-done');
+    stat(leaves.filter(t => t.doneAt && t.doneAt.slice(0, 7) === month).length, 'Done this month', 'st-done');
 }
 function renderToday(){
-  const open = tasks.filter(t => t.status !== 'done');
+  const leaves = leafTasks(), open = leaves.filter(t => t.status !== 'done');
   const weekEnd = addDays(today, 7);
   const overdue = open.filter(isOverdue).sort(byDue);
   const dueSoon = open.filter(t => t.due && t.due >= today && t.due <= weekEnd).sort(byDue);
   const shown = new Set([...overdue, ...dueSoon].map(t => t.id));
   const doing = open.filter(t => t.status === 'progress' && !shown.has(t.id)).sort(byDue);
   const pending = open.filter(t => t.status === 'pending' && !shown.has(t.id)).sort(byDue);
-  const doneToday = tasks.filter(t => t.doneAt === today);
-  const html = section('⚠ Overdue', overdue) + section('Due in the next 7 days', dueSoon) +
-    section('In progress', doing) + section('Pending', pending) + section('✓ Done today', doneToday);
+  const doneToday = leaves.filter(t => t.doneAt === today);
+  const sec = (title, list) => section(title, list, null, list.map(t => taskRow(t, { showParent: true })).join(''));
+  const html = sec('⚠ Overdue', overdue) + sec('Due in the next 7 days', dueSoon) +
+    sec('In progress', doing) + sec('Pending', pending) + sec('✓ Done today', doneToday);
   document.getElementById('view-today').innerHTML = html ||
     `<div class="card empty">Nothing urgent. <a href="#" onclick="openTaskForm();return false">Add a task</a> to get started.</div>`;
 }
@@ -1219,10 +1291,11 @@ function renderTopicFilter(){
 function renderTasks(){
   const q = document.getElementById('fSearch').value.trim().toLowerCase();
   const st = document.getElementById('fStatus').value, tp = document.getElementById('fTopic').value, sort = document.getElementById('fSort').value;
-  let list = tasks.filter(t =>
-    (st === 'all' || (st === 'open' ? t.status !== 'done' : t.status === st)) &&
-    (!tp || (tp === '__none' ? !t.topic : t.topic === tp)) &&
-    (!q || (t.title + ' ' + t.notes + ' ' + t.topic).toLowerCase().includes(q)));
+  const match = t => (st === 'all' || (st === 'open' ? t.status !== 'done' : t.status === st)) &&
+    (!q || (t.title + ' ' + t.notes + ' ' + t.topic).toLowerCase().includes(q));
+  // Chỉ liệt kê task cấp trên; task cha hiện nếu chính nó hoặc một giai đoạn khớp bộ lọc
+  let list = tasks.filter(t => !t.parentId && (!tp || (tp === '__none' ? !t.topic : t.topic === tp)) &&
+    (match(t) || childrenOf(t.id).some(match)));
   const sorters = {
     due: byDue,
     priority: (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || byDue(a, b),
@@ -1233,9 +1306,24 @@ function renderTasks(){
   const groups = new Map();
   list.forEach(t => { const k = t.topic || 'No topic'; if(!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
   const keys = [...groups.keys()].sort((a, b) => (a === 'No topic') - (b === 'No topic') || a.localeCompare(b));
+  topicGroups = keys.map(k => groups.get(k));
   document.getElementById('taskList').innerHTML = keys.length
-    ? keys.map(k => section(esc(k), groups.get(k))).join('')
+    ? keys.map((k, gi) => {
+        const g = groups.get(k), singles = g.filter(t => !hasChildren(t));
+        const btn = singles.length >= 2 ? `<button class="sec-btn" onclick="groupTopic(${gi})" title="Make these tasks phases of one task">⤵ Combine into one task</button>` : '';
+        return section(esc(k) + btn, g, null, g.map(t => taskRow(t) + (hasChildren(t) && (expandedParents.has(t.id) || (q && childrenOf(t.id).some(match)))
+          ? childrenOf(t.id).map(c => taskRow(c, { child: true })).join('') : '')).join(''));
+      }).join('')
     : `<div class="card empty">No tasks match these filters.</div>`;
+}
+let topicGroups = [];
+async function groupTopic(gi){
+  const g = (topicGroups[gi] || []).filter(t => !hasChildren(t));
+  if(g.length < 2) return;
+  const name = prompt(`Combine these ${g.length} tasks into one task (they become its phases). Name of the task:`, g[0].topic || g[0].title);
+  if(!name || !name.trim()) return;
+  const id = await mutate(() => TT.groupTasks(name.trim(), g.map(t => t.id)));
+  if(id){ expandedParents.add(Number(id)); renderTasks(); toast(`Combined ${g.length} tasks into “${name.trim()}”.`); }
 }
 function calShift(n){ if(n === 0){ calView = new Date(); calView.setDate(1); } else calView.setMonth(calView.getMonth() + n); renderCalendar(); }
 function renderCalendar(){
@@ -1244,7 +1332,7 @@ function renderCalendar(){
   const first = new Date(y, m, 1), offset = (first.getDay() + 6) % 7;
   const start = new Date(y, m, 1 - offset);
   const byDay = {};
-  tasks.forEach(t => { const d = t.due || t.start; if(d) (byDay[d] = byDay[d] || []).push(t); });
+  leafTasks().forEach(t => { const d = t.due || t.start; if(d) (byDay[d] = byDay[d] || []).push(t); });
   let html = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-wd">${d}</div>`).join('');
   const cells = Math.ceil((offset + new Date(y, m + 1, 0).getDate()) / 7) * 7;
   for(let i = 0; i < cells; i++){
@@ -1345,7 +1433,7 @@ function renderIeltsHome(){
   document.getElementById('days14Total').textContent = fmtMinutes(days.reduce((a, d) => a + (per[d] || 0), 0));
   const ws = weekStart();
   document.getElementById('weekSkills').innerHTML = skillBars(ielts.study.filter(s => s.day >= ws && s.day <= today));
-  const open = tasks.filter(t => t.status !== 'done');
+  const open = leafTasks().filter(t => t.status !== 'done');
   const soon = open.filter(t => t.due && t.due <= addDays(today, 7)).sort(byDue);
   const doing = open.filter(t => t.status === 'progress' && !soon.includes(t)).sort(byDue);
   document.getElementById('ieltsTasksHome').innerHTML = (section('📌 Due soon', soon) + section('▶ In progress', doing)) ||
