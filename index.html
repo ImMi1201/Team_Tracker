@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="lib/data.js"></script>
+<script src="lib/report.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -143,6 +144,19 @@
   .imp-row:first-child { border-top: none; }
   .imp-tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--done-bg); color: var(--done); margin-right: 6px; }
   .imp-tag.upd { background: var(--progress-bg); color: var(--progress); }
+  .step-wrap { border-top: 1px solid var(--line); }
+  .step-wrap:first-child { border-top: none; }
+  .step-wrap .step { border-top: none; }
+  .step-note { margin: -2px 12px 8px 40px; font-size: 13px; color: var(--ink-soft); white-space: pre-wrap; cursor: pointer; border-left: 3px solid var(--primary-soft); padding: 2px 0 2px 8px; }
+  .step-note-edit { margin: 0 12px 10px 40px; }
+  .step-note-edit textarea { min-height: 80px; font-size: 13px; }
+  .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .rp-sec { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 600; margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .rp-step { margin-bottom: 12px; }
+  .rp-step label { text-transform: none; letter-spacing: 0; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink); font-weight: 600; }
+  .rp-checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; text-transform: none; letter-spacing: 0; font-family: 'Inter', sans-serif; color: var(--ink); margin-bottom: 6px; }
+  .rp-checks input { width: 16px; height: 16px; accent-color: var(--primary); }
+  @media (max-width: 720px) { .rp-grid { grid-template-columns: 1fr; } }
   .log-item { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; }
   .log-item:first-child { border-top: none; }
   .log-when { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
@@ -521,6 +535,62 @@
   </div>
 </div>
 
+<!-- REPORT -->
+<div class="overlay" id="reportOverlay" onclick="if(event.target===this)closeOverlay('reportOverlay')">
+  <form class="modal" style="max-width:760px" onsubmit="event.preventDefault()">
+    <h2>📄 Full Scale OOS Investigation Report</h2>
+    <p style="font-size:13px;color:var(--ink-soft);margin-top:-8px" id="rpTaskName"></p>
+    <div class="rp-grid">
+      <div class="field"><label for="rpNo">Report No.</label><input id="rpNo" placeholder="e.g. FP2602-DO/OOS"></div>
+      <div class="field"><label for="rpDate">Prepared date</label><input type="date" id="rpDate"></div>
+      <div class="field"><label for="rpProduct">Product name / Material name</label><input id="rpProduct"></div>
+      <div class="field"><label for="rpCode">Product code</label><input id="rpCode" placeholder="e.g. HYW2V3"></div>
+      <div class="field"><label for="rpLots">Lot No. / Control No. (one per line)</label><textarea id="rpLots" rows="2"></textarea></div>
+      <div class="field"><label for="rpTest">Test item</label><input id="rpTest" placeholder="e.g. Description"></div>
+    </div>
+    <div class="field"><label for="rpSpec">Specification</label><input id="rpSpec" placeholder="e.g. A homogenous cream"></div>
+    <div class="field"><label for="rpOos">OOS content</label><textarea id="rpOos" rows="2"></textarea></div>
+    <div class="rp-grid">
+      <div class="field"><label for="rpResult">Result</label><input id="rpResult" placeholder="e.g. The cream is non-homogenous"></div>
+      <div class="field"><label for="rpStab">Test result after (stability point)</label><input id="rpStab" placeholder="e.g. 48-month stability"></div>
+    </div>
+    <div class="field"><label for="rpTestNote">Test result note</label><input id="rpTestNote" placeholder="e.g. see detail in Test slip of lot KX01 and KX02A"></div>
+    <div class="field"><label for="rpInv">Investigation content</label><input id="rpInv"></div>
+    <div class="rp-sec">Investigation result: findings of each step</div>
+    <div id="rpSteps"></div>
+    <div class="field"><label for="rpConcl">Conclusion</label><textarea id="rpConcl" rows="3"></textarea></div>
+    <div class="rp-sec">Evaluation of QA Manager</div>
+    <div class="rp-grid">
+      <div class="field rp-checks"><label>Range of impact</label>
+        <label><input type="checkbox" id="rpImpLot"> a. Product for only this lot</label>
+        <label><input type="checkbox" id="rpImpProduct"> b. Product (incl. previous / other lots)</label>
+        <label><input type="checkbox" id="rpImpProcess"> c. Process</label>
+        <label><input type="checkbox" id="rpImpRelease"> d. Release</label></div>
+      <div class="field rp-checks"><label>Propose CA</label>
+        <label><input type="radio" name="rpCa" value="capa"> CAPA</label>
+        <label><input type="radio" name="rpCa" value="deviation"> Deviation</label>
+        <label><input type="radio" name="rpCa" value="no"> No</label>
+        <label><input type="radio" name="rpCa" value=""> Not decided</label></div>
+    </div>
+    <div class="field"><label for="rpRemarks">Special remarks</label><textarea id="rpRemarks" rows="2"></textarea></div>
+    <div class="rp-grid">
+      <div class="field"><label for="rpCirc">Circulate to responsible person</label><input id="rpCirc"></div>
+      <div class="field"><label for="rpDocs">Related document No.</label><input id="rpDocs"></div>
+    </div>
+    <div class="rp-sec">Signatures <span style="font-weight:400;font-size:12px;color:var(--ink-soft)">(remembered for next reports)</span></div>
+    <div class="rp-grid" id="rpSigners"></div>
+    <div class="field"><label for="rpForm">Form code (footer)</label><input id="rpForm"></div>
+    <p style="font-size:12px;color:var(--ink-soft)">Empty fields appear as <i>[Enter here]</i> in Word so you can fill them in later. Photos can be inserted in Word in the test result table.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeOverlay('reportOverlay')">Close</button>
+      <div class="right">
+        <button type="button" class="btn btn-ghost" onclick="saveReportForm(false)">Save draft</button>
+        <button type="button" class="btn" id="rpDownload" onclick="saveReportForm(true)">⬇ Download Word</button>
+      </div>
+    </div>
+  </form>
+</div>
+
 <!-- TASK DETAIL -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeOverlay('detailOverlay')">
   <div class="modal" id="detailBody"></div>
@@ -615,6 +685,7 @@ async function refresh(){
   allTasks = st.tasks || []; updates = st.updates || []; today = st.today || isoLocal(new Date());
   tasks = allTasks.filter(t => (t.space || 'work') === space);
   ielts = st.ielts || { study: [], tests: [], vocab: [] };
+  reportDefaults = st.reportDefaults || {};
   renderAll();
   return st;
 }
@@ -707,7 +778,9 @@ async function saveTaskForm(ev){
   };
   if(!task.title) return;
   if(task.start && task.due && task.due < task.start){ toast('Deadline is before the start date.'); return; }
-  if(await mutate(() => TT.saveTask(task))) closeOverlay('taskFormOverlay');
+  const wasDone = task.id ? (taskById(Number(task.id)) || {}).status === 'done' : false;
+  const savedId = await mutate(() => TT.saveTask(task));
+  if(savedId){ closeOverlay('taskFormOverlay'); offerReport(Number(savedId), task.status, wasDone); }
 }
 async function deleteTaskFromForm(){
   const id = Number(document.getElementById('tId').value);
@@ -715,7 +788,15 @@ async function deleteTaskFromForm(){
   if(!t || !confirm(`Delete "${t.title}" and all of its updates?`)) return;
   if(await mutate(() => TT.deleteTask(id))) closeOverlay('taskFormOverlay');
 }
-async function changeStatus(id, status){ await mutate(() => TT.setStatus(id, status)); }
+async function changeStatus(id, status){
+  const wasDone = (taskById(id) || {}).status === 'done';
+  if(await mutate(() => TT.setStatus(id, status))) offerReport(id, status, wasDone);
+}
+function offerReport(id, status, wasDone){
+  const t = taskById(id);
+  if(!t || status !== 'done' || wasDone || (t.space || 'work') !== 'work') return;
+  if(confirm(`🎉 "${t.title}" is done!\n\nCreate the investigation report (Word) now?`)) openReport(id);
+}
 
 function dueChip(t){
   if(!t.due) return '';
@@ -778,6 +859,7 @@ function renderDetail(){
     <div class="card">${list.length ? list.map(logItem).join('') : '<div class="empty">No updates yet.</div>'}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="openTaskForm(${t.id})">✎ Edit task</button>
+      ${(t.space || 'work') === 'work' ? `<button class="btn btn-ghost" onclick="openReport(${t.id})">📄 Report</button>` : ''}
       ${t.due ? `<a class="btn btn-ghost" style="text-decoration:none" href="${googleCalLink(t)}" target="_blank" rel="noopener">📅 Add to Google Calendar</a>` : ''}
       <div class="right"><button class="btn btn-ghost" onclick="closeOverlay('detailOverlay')">Close</button></div>
     </div>`;
@@ -793,12 +875,22 @@ function renderSteps(t){
   const steps = t.steps || [], done = steps.filter(x => x.done).length;
   return `<h3 style="font-size:15px;margin:0 0 4px">Steps ${steps.length ? `<span class="count mono" style="font-weight:400;font-size:12px;color:var(--ink-soft)">${done}/${steps.length}</span>` : ''}</h3>
     ${steps.length ? `<div class="progress-bar"><div style="width:${Math.round(done / steps.length * 100)}%"></div></div>
-    <div class="card steps-list">${steps.map(x => `<div class="step ${x.done ? 'done' : ''}">
+    <div class="card steps-list">${steps.map(x => `<div class="step-wrap"><div class="step ${x.done ? 'done' : ''}">
       <input type="checkbox" ${x.done ? 'checked' : ''} onchange="toggleStep(${x.id}, this.checked)" aria-label="Done">
       <span class="step-title" ondblclick="renameStep(${x.id})" title="Double-click to rename">${esc(x.title)}</span>
-      <button class="icon-btn" onclick="deleteStep(${x.id})" title="Delete step" aria-label="Delete step">✕</button></div>`).join('')}</div>` : ''}
+      <button class="icon-btn" onclick="editStepNote(${x.id})" title="${x.note ? 'Edit findings' : 'Add findings / note'}" aria-label="Note">📝</button>
+      <button class="icon-btn" onclick="deleteStep(${x.id})" title="Delete step" aria-label="Delete step">✕</button></div>
+      ${editingNoteStep === x.id ? `<div class="step-note-edit"><textarea id="stepNoteText" placeholder="What did you find in this step? (goes into the report)">${esc(x.note || '')}</textarea>
+        <div style="display:flex;gap:8px;margin-top:6px"><button class="btn" style="padding:6px 12px" onclick="saveStepNote(${x.id})">Save note</button><button class="btn btn-ghost" style="padding:6px 12px" onclick="editingNoteStep=null;renderDetail()">Cancel</button></div></div>`
+        : x.note ? `<div class="step-note" onclick="editStepNote(${x.id})" title="Click to edit">${esc(x.note)}</div>` : ''}</div>`).join('')}</div>` : ''}
     <form style="display:flex;gap:8px;margin-bottom:16px" onsubmit="addStep(event, ${t.id})">
       <input id="newStep" placeholder="Add a step…" maxlength="300"><button class="btn btn-ghost" type="submit">Add</button></form>`;
+}
+let editingNoteStep = null;
+function editStepNote(id){ editingNoteStep = id; renderDetail(); setTimeout(() => { const el = document.getElementById('stepNoteText'); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 30); }
+async function saveStepNote(id){
+  const note = document.getElementById('stepNoteText').value;
+  if(await mutate(() => TT.setStepNote(id, note))){ editingNoteStep = null; renderDetail(); }
 }
 async function addStep(ev, taskId){
   ev.preventDefault();
@@ -813,6 +905,67 @@ async function renameStep(id){
   if(title && title.trim() && title.trim() !== st.title) await mutate(() => TT.setStep(id, null, title.trim()));
 }
 async function deleteStep(id){ if(confirm('Delete this step?')) await mutate(() => TT.deleteStep(id)); }
+
+// ---------- report (Word) ----------
+let reportTaskId = null, reportDefaults = {};
+const SIGNER_DEFAULTS = { factory: 'Pham Thai Binh', vtc: 'Kenji Yamazaki' };
+function openReport(id){
+  const t = taskById(id); if(!t) return;
+  reportTaskId = id;
+  const r = t.report || {}, sig = Object.assign({}, SIGNER_DEFAULTS, reportDefaults.signatories || {}, r.signatories || {});
+  const set = (el, v) => document.getElementById(el).value = v == null ? '' : v;
+  document.getElementById('rpTaskName').textContent = 'Task: ' + t.title;
+  set('rpNo', r.reportNo); set('rpDate', r.preparedDate || today); set('rpProduct', r.product || t.title); set('rpCode', r.productCode);
+  set('rpLots', r.lots); set('rpTest', r.testItem); set('rpSpec', r.specification); set('rpOos', r.oosContent || t.notes);
+  set('rpResult', r.result); set('rpStab', r.stabilityPoint); set('rpTestNote', r.testResultNote);
+  set('rpInv', r.investigationContent || (t.steps || []).map(s => s.title).join(', ')); set('rpConcl', r.conclusion);
+  const imp = r.impact || {};
+  document.getElementById('rpImpLot').checked = !!imp.lot; document.getElementById('rpImpProduct').checked = !!imp.product;
+  document.getElementById('rpImpProcess').checked = !!imp.process; document.getElementById('rpImpRelease').checked = !!imp.release;
+  document.querySelectorAll('input[name=rpCa]').forEach(x => x.checked = x.value === (r.proposeCa || ''));
+  set('rpRemarks', r.remarks); set('rpCirc', r.circulateTo); set('rpDocs', r.relatedDocs); set('rpForm', r.formCode || 'SOP-LA-A008-FORM06/06');
+  document.getElementById('rpSteps').innerHTML = (t.steps || []).length ? t.steps.map((s, i) => `<div class="field rp-step"><label for="rpStep${s.id}">${i + 1}. ${esc(s.title)} ${s.done ? '✓' : ''}</label>
+      <textarea id="rpStep${s.id}" data-step="${s.id}" rows="3" placeholder="Findings of this step…">${esc(s.note || '')}</textarea></div>`).join('')
+    : '<div class="note">This task has no steps yet. Add steps in the task (or import a plan) — each step becomes a section of the report with its findings.</div>';
+  document.getElementById('rpSigners').innerHTML = TTReport.SIGNERS.map(([k, role, title]) => `<div class="field"><label for="rpSig_${k}">${role} — ${title}</label><input id="rpSig_${k}" value="${esc(sig[k] || '')}"></div>`).join('');
+  closeOverlay('detailOverlay');
+  document.getElementById('reportOverlay').classList.add('open');
+}
+function readReportForm(){
+  const v = el => document.getElementById(el).value.trim();
+  const ca = document.querySelector('input[name=rpCa]:checked');
+  const signatories = {}; TTReport.SIGNERS.forEach(([k]) => signatories[k] = v('rpSig_' + k));
+  return {
+    reportNo: v('rpNo'), preparedDate: v('rpDate'), product: v('rpProduct'), productCode: v('rpCode'), lots: document.getElementById('rpLots').value.trim(),
+    testItem: v('rpTest'), specification: v('rpSpec'), oosContent: document.getElementById('rpOos').value.trim(), result: v('rpResult'),
+    stabilityPoint: v('rpStab'), testResultNote: v('rpTestNote'), investigationContent: v('rpInv'), conclusion: document.getElementById('rpConcl').value.trim(),
+    impact: { lot: document.getElementById('rpImpLot').checked, product: document.getElementById('rpImpProduct').checked, process: document.getElementById('rpImpProcess').checked, release: document.getElementById('rpImpRelease').checked },
+    proposeCa: ca ? ca.value : '', remarks: document.getElementById('rpRemarks').value.trim(), circulateTo: v('rpCirc'), relatedDocs: v('rpDocs'),
+    formCode: v('rpForm'), signatories
+  };
+}
+async function saveReportForm(download){
+  const t = taskById(reportTaskId); if(!t) return;
+  const report = readReportForm();
+  const changed = [...document.querySelectorAll('#rpSteps textarea[data-step]')]
+    .map(el => ({ id: Number(el.dataset.step), note: el.value }))
+    .filter(x => { const s = t.steps.find(y => y.id === x.id); return s && (s.note || '') !== x.note; });
+  const ok = await mutate(async () => { for(const c of changed) await TT.setStepNote(c.id, c.note); await TT.saveReport(t.id, report); });
+  if(!ok) return;
+  if(!download){ toast('Report saved.'); return; }
+  const btn = document.getElementById('rpDownload'); btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    await TTReport.load();
+    const fresh = taskById(reportTaskId) || t;
+    saveBlob(await TTReport.build(fresh, report), TTReport.fileName(fresh, report));
+    toast('Word file downloaded.');
+  } catch(e){ toast(e.message || 'Could not create the Word file.'); }
+  finally { btn.disabled = false; btn.textContent = '⬇ Download Word'; }
+}
+function saveBlob(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
 
 // ---------- import plan ----------
 const IMPORT_PROMPT = `Turn our plan into tasks for my task tracker. Reply ONLY with a code block in exactly this format, one block per task:
@@ -1444,7 +1597,7 @@ window.addEventListener('resize', () => { clearTimeout(window.__rz); window.__rz
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(document.getElementById('reviewOverlay').classList.contains('open')){ endReview(); return; }
-  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay', 'vocabImportOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
+  ['taskFormOverlay', 'detailOverlay', 'calOverlay', 'importOverlay', 'vocabImportOverlay', 'reportOverlay'].forEach(id => { if(document.getElementById(id).classList.contains('open')) closeOverlay(id); });
 });
 // Tải lại dữ liệu khi quay lại tab (để thấy thay đổi từ thiết bị khác)
 document.addEventListener('visibilitychange', () => {
