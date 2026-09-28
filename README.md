@@ -66,6 +66,18 @@ notes: Một dòng ghi chú
 - [ ] Bước tiếp theo
 ```
 
+## Task cha và các giai đoạn
+
+Một việc lớn (ví dụ một cuộc điều tra OOS) có thể gồm nhiều **giai đoạn**, mỗi giai đoạn có deadline, giờ nhắc, trạng thái và các bước riêng.
+
+- Danh sách chỉ hiện **một dòng** cho task cha (☑ 3/9 phases); bấm ▸ để xem các giai đoạn.
+- Tab **Today**, Calendar và thông báo vẫn nhắc theo từng giai đoạn (có ghi ↳ tên task cha).
+- Mở task cha → mục **Phases**: bấm vào một giai đoạn để mở, hoặc gõ **Add phase** để thêm.
+- Chuyển một task vào task cha: ✎ sửa task → **Part of (parent task)**.
+- Đã lỡ có nhiều task rời cùng topic: ở tab All tasks, bấm **⤵ Combine into one task** cạnh tên topic.
+- Import từ chat: dòng đầu `# Tên việc lớn`, sau đó mỗi giai đoạn một khối `## …`. Dòng `  > …` ngay dưới một bước là ghi chú (kết quả) của bước đó.
+- Xong giai đoạn cuối, web hỏi có đóng task cha và làm báo cáo không. Báo cáo Word của task cha: mỗi giai đoạn là một mục (1., 2., …), các bước là mục con (1.1, 1.2…) kèm ghi chú.
+
 ## Báo cáo điều tra (Word)
 
 Dành cho task ở khu vực **Work**. Báo cáo theo mẫu *Full Scale OOS Investigation Report* (SOP-LA-A008-FORM06/06), toàn bộ bằng tiếng Anh.
